@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CT 位置決め画像（スキャノグラム）撮影 アニメーション</title>
+<style>
+  body{margin:0;background:#e9e4d6;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#333;}
+  .wrap{max-width:1040px;margin:0 auto;padding:18px 16px 36px;}
+  h1{font-size:20px;color:#0c5350;margin:6px 0 2px;}
+  .hint{font-size:13px;color:#6b6256;margin:0 0 12px;}
+  .stage{background:#f4f0e7;border:1px solid #d8d0bd;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden;}
+  svg{display:block;width:100%;height:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CT スキャン：位置決め画像（スキャノグラム）の撮影</h1>
+  <p class="hint">管球と検出器を固定したまま（回転なし）、寝台を連続スライドさせると、横のパネルに位置決め画像（前後像のスキャノグラム）が上から下へ徐々に現れます。この画像でスライス位置を計画します。下のボタンで一時停止・リセット・速度変更ができます（自動再生／自動ループ）。</p>
+  <div class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif">
+  <defs>
+    <linearGradient id="tubeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc266"/><stop offset="1" stop-color="#e8801a"/>
+    </linearGradient>
+    <linearGradient id="detGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2bb6c4"/><stop offset="1" stop-color="#13888f"/>
+    </linearGradient>
+    <linearGradient id="gantryGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9dde3"/><stop offset="0.5" stop-color="#a7afba"/><stop offset="1" stop-color="#cdd2da"/>
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6edf6"/><stop offset="1" stop-color="#b6c6e0"/>
+    </linearGradient>
+    <clipPath id="scanoClip"><rect id="scanoClipRect" x="700" y="172" width="252" height="0"/></clipPath>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1280" height="720" fill="#f4f0e7"/>
+
+  <!-- title -->
+  <text x="640" y="44" text-anchor="middle" font-size="26" font-weight="bold" fill="#0c5350">CT スキャン：位置決め画像（スキャノグラム）の撮影</text>
+  <text x="640" y="74" text-anchor="middle" font-size="14" fill="#555">管球と検出器は固定（回転なし）。寝台を連続スライドさせて、横に位置決め画像（前後像）を撮影する</text>
+
+  <!-- =================== SCENE (scaled, left) =================== -->
+  <g id="scene" transform="translate(-30 122) scale(0.56)">
+
+    <!-- patient : couch + body, slides through the fixed beam -->
+    <g id="patient">
+      <!-- couch -->
+      <rect x="400" y="433" width="860" height="28" rx="12" fill="#2b3340"/>
+      <rect x="412" y="426" width="836" height="12" rx="6" fill="#495a73"/>
+      <!-- body : supine side-profile -->
+      <g stroke="#5a6b8c" stroke-width="2" fill="url(#bodyGrad)" stroke-linejoin="round">
+        <g transform="rotate(10 910 362)">
+          <path d="M 950,318 L 1200,344 A 17 17 0 0 1 1200,378 L 950,410 Z"/>
+          <rect x="1194" y="346" width="66" height="30" rx="15" transform="rotate(-50 1200 361)"/>
+        </g>
+        <rect x="543" y="346" width="46" height="28" rx="9"/>
+        <ellipse cx="745" cy="352" rx="165" ry="74"/>
+        <rect x="600" y="372" width="275" height="48" rx="24"/>
+        <circle cx="910" cy="362" r="60"/>
+        <polygon points="486,280 470,322 506,322"/>
+        <ellipse cx="500" cy="360" rx="55" ry="48"/>
+      </g>
+      <text x="505" y="270" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b8a86">頭側</text>
+      <text x="1216" y="298" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b8a86">足側</text>
+    </g>
+
+    <!-- gantry bore (fixed, semi-transparent) -->
+    <ellipse cx="640" cy="358" rx="148" ry="280" fill="none" stroke="#8b94a3" stroke-width="3" opacity="0.55"/>
+    <ellipse cx="640" cy="358" rx="118" ry="250" fill="none" stroke="url(#gantryGrad)" stroke-width="60" opacity="0.45"/>
+    <ellipse cx="640" cy="358" rx="88" ry="220" fill="none" stroke="#6b7585" stroke-width="3" opacity="0.6"/>
+    <text x="640" y="120" text-anchor="middle" font-size="13" fill="#2b3340">ガントリ</text>
+
+    <!-- fixed scan plane + continuous beam (no rotation) -->
+    <line x1="640" y1="150" x2="640" y2="566" stroke="#1b8a86" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.5"/>
+    <polygon points="634,168 576,556 704,556 646,168" fill="#f5c400" fill-opacity="0.30"/>
+    <g stroke="#f5c400" stroke-width="1.3" stroke-opacity="0.75">
+      <line x1="640" y1="166" x2="580" y2="556"/>
+      <line x1="640" y1="166" x2="610" y2="556"/>
+      <line x1="640" y1="166" x2="640" y2="556"/>
+      <line x1="640" y1="166" x2="670" y2="556"/>
+      <line x1="640" y1="166" x2="700" y2="556"/>
+    </g>
+
+    <!-- detector (fixed, bottom, facing up) -->
+    <g transform="translate(640 568) rotate(-90)">
+      <path d="M 0,-70 Q -20,0 0,70" fill="none" stroke="#0c5350" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 0,-70 Q -20,0 0,70" fill="none" stroke="url(#detGrad)" stroke-width="13" stroke-linecap="round"/>
+    </g>
+
+    <!-- tube (fixed, top, pointing down) -->
+    <g transform="translate(640 148) rotate(90)">
+      <rect x="-44" y="-30" width="36" height="60" rx="8" fill="url(#tubeGrad)" stroke="#8a4500" stroke-width="2"/>
+      <rect x="-30" y="-30" width="6" height="60" fill="#ffffff" opacity="0.25"/>
+      <path d="M -8,-18 L -8,18 L 6,8 L 6,-8 Z" fill="#ffe6bf" stroke="#8a4500" stroke-width="1"/>
+      <circle cx="6" cy="0" r="5" fill="#ffffff"/>
+    </g>
+    <text x="640" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="#8a4500">管球：固定</text>
+  </g>
+
+  <!-- =================== SCANOGRAM PANEL (right) =================== -->
+  <text x="826" y="142" text-anchor="middle" font-size="15" font-weight="bold" fill="#0c5350">スキャノグラム（位置決め画像）</text>
+  <rect x="700" y="150" width="252" height="448" rx="8" fill="#11161f" stroke="#1b8a86" stroke-width="1.5"/>
+
+  <!-- the topogram (frontal scout), revealed top->bottom by the clip -->
+  <g clip-path="url(#scanoClip)">
+    <!-- soft-tissue silhouette -->
+    <g fill="#93a6bd" fill-opacity="0.5">
+      <ellipse cx="826" cy="204" rx="22" ry="26"/>
+      <rect x="815" y="224" width="22" height="16" rx="5"/>
+      <ellipse cx="826" cy="272" rx="84" ry="30"/>
+      <ellipse cx="826" cy="324" rx="64" ry="56"/>
+      <ellipse cx="826" cy="392" rx="53" ry="40"/>
+      <ellipse cx="826" cy="450" rx="61" ry="34"/>
+      <rect x="800" y="474" width="22" height="100" rx="11"/>
+      <rect x="830" y="474" width="22" height="100" rx="11"/>
+    </g>
+    <!-- bones (brighter) -->
+    <g stroke="#eaf0f8" stroke-opacity="0.92" fill="none" stroke-linecap="round">
+      <!-- clavicles -->
+      <path d="M826,254 Q798,256 770,266" stroke-width="2.4"/>
+      <path d="M826,254 Q854,256 882,266" stroke-width="2.4"/>
+      <!-- spine -->
+      <line x1="826" y1="240" x2="826" y2="458" stroke-width="3.4"/>
+      <g stroke-width="1.6" stroke-opacity="0.8">
+        <line x1="816" y1="262" x2="836" y2="262"/><line x1="816" y1="284" x2="836" y2="284"/>
+        <line x1="816" y1="306" x2="836" y2="306"/><line x1="816" y1="328" x2="836" y2="328"/>
+        <line x1="816" y1="350" x2="836" y2="350"/><line x1="816" y1="372" x2="836" y2="372"/>
+        <line x1="816" y1="394" x2="836" y2="394"/><line x1="816" y1="416" x2="836" y2="416"/>
+      </g>
+      <!-- ribs (left + right) -->
+      <g stroke-width="2">
+        <path d="M826,272 Q784,284 766,312"/><path d="M826,292 Q780,304 762,334"/>
+        <path d="M826,312 Q780,326 764,356"/><path d="M826,332 Q784,348 772,376"/>
+        <path d="M826,272 Q868,284 886,312"/><path d="M826,292 Q872,304 890,334"/>
+        <path d="M826,312 Q872,326 888,356"/><path d="M826,332 Q868,348 880,376"/>
+      </g>
+      <!-- pelvis -->
+      <path d="M780,428 Q804,416 826,420 Q848,416 872,428 Q866,460 838,470 L838,452 Q826,447 814,452 L814,470 Q786,460 780,428 Z" stroke-width="2.4"/>
+      <circle cx="800" cy="462" r="7" stroke-width="2"/>
+      <circle cx="852" cy="462" r="7" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- scan line (current acquisition edge) -->
+  <line id="scanLine" x1="700" y1="172" x2="952" y2="172" stroke="#f5c400" stroke-width="2.6" opacity="0"/>
+  <text id="scanLineLbl" x="956" y="176" font-size="11" fill="#b58900" opacity="0">スキャン中</text>
+
+  <!-- =================== HUD =================== -->
+  <rect x="980" y="150" width="276" height="206" rx="12" fill="#1b8a86" fill-opacity="0.08" stroke="#1b8a86" stroke-width="1.5"/>
+  <text x="998" y="180" font-size="16" font-weight="bold" fill="#0c5350">スキャノグラム撮影</text>
+  <g font-size="13.5" fill="#233">
+    <text x="998" y="208">・管球と検出器：<tspan font-weight="bold" fill="#8a4500">固定</tspan>（回転なし）</text>
+    <text x="998" y="230">・寝台：連続スライド →</text>
+    <text x="998" y="252">・X線：連続曝射</text>
+  </g>
+  <text id="posTxt" x="998" y="282" font-size="14" font-weight="bold" fill="#0c5350">寝台送り　0 ％</text>
+  <rect x="998" y="294" width="240" height="13" rx="6" fill="#ffffff" stroke="#1b8a86" stroke-width="1"/>
+  <rect id="feedBar" x="998" y="294" width="0" height="13" rx="6" fill="#2f9e44"/>
+  <text id="stateTxt" x="998" y="334" font-size="12.5" fill="#555">画像を上（頭側）から下（足側）へ取得中</text>
+
+  <!-- legend -->
+  <g>
+    <rect x="150" y="624" width="22" height="22" rx="4" fill="url(#tubeGrad)" stroke="#8a4500"/>
+    <text x="180" y="641" font-size="13" fill="#333">X線管（固定）</text>
+    <rect x="330" y="624" width="22" height="22" rx="4" fill="url(#detGrad)"/>
+    <text x="360" y="641" font-size="13" fill="#333">検出器（固定）</text>
+    <rect x="520" y="626" width="26" height="18" fill="#f5c400" fill-opacity="0.4"/>
+    <text x="554" y="641" font-size="13" fill="#333">X線曝射（連続）</text>
+    <rect x="724" y="624" width="22" height="22" rx="4" fill="#11161f" stroke="#1b8a86"/>
+    <text x="754" y="641" font-size="13" fill="#333">スキャノグラム（前後像）</text>
+  </g>
+
+  <!-- controls -->
+  <g font-size="14" fill="#0c5350" text-anchor="middle" style="cursor:pointer">
+    <g id="btnPlay">
+      <rect x="24" y="672" width="138" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text id="btnPlayLbl" x="93" y="693">⏸ 一時停止</text>
+    </g>
+    <g id="btnReset">
+      <rect x="176" y="672" width="118" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text x="235" y="693">↺ リセット</text>
+    </g>
+    <g id="btnSpeed">
+      <rect x="308" y="672" width="108" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text id="btnSpeedLbl" x="362" y="693">速度 x1</text>
+    </g>
+  </g>
+
+  <script>
+// <![CDATA[
+(function(){
+  function $(id){return document.getElementById(id);}
+
+  var SHIFT0=-40, SHIFT1=360;      // patient slide range (scene-local px)
+  var scanTime=7000;               // ms for the whole table travel
+  var panelTop=172, panelH=404;    // scanogram reveal region (y)
+
+  var patient=$('patient'), clipRect=$('scanoClipRect');
+  var scanLine=$('scanLine'), scanLbl=$('scanLineLbl'), feedBar=$('feedBar');
+  var posTxt=$('posTxt'), stateTxt=$('stateTxt'), btnPlayLbl=$('btnPlayLbl'), btnSpeedLbl=$('btnSpeedLbl');
+
+  var state='scan', tphase=0, last=null, running=true, speed=1, loop=true;
+
+  function apply(p){
+    var shift=SHIFT0+p*(SHIFT1-SHIFT0);
+    patient.setAttribute('transform','translate('+(-shift).toFixed(1)+',0)');
+    clipRect.setAttribute('height',(p*panelH).toFixed(1));
+    var y=panelTop+p*panelH;
+    scanLine.setAttribute('y1',y.toFixed(1)); scanLine.setAttribute('y2',y.toFixed(1));
+    scanLbl.setAttribute('y',(y+4).toFixed(1));
+    feedBar.setAttribute('width',(240*p).toFixed(1));
+    posTxt.textContent='寝台送り　'+Math.round(p*100)+' ％';
+  }
+
+  function showScan(){ scanLine.setAttribute('opacity',1); scanLbl.setAttribute('opacity',1); stateTxt.textContent='画像を上（頭側）から下（足側）へ取得中'; }
+
+  function showDone(){
+    scanLine.setAttribute('opacity',0); scanLbl.setAttribute('opacity',0);
+    posTxt.textContent='撮影完了　100 ％';
+    stateTxt.textContent='位置決め画像 完成 → スライス位置の計画に使用';
+    if(loop) setTimeout(function(){ if(state==='done') resetAll(); }, 2800);
+  }
+
+  function resetAll(){
+    tphase=0; state='scan'; running=true;
+    apply(0); showScan();
+    btnPlayLbl.textContent='⏸ 一時停止';
+  }
+
+  function frame(now){
+    if(last==null) last=now;
+    var dt=(now-last)*speed; if(dt<0) dt=0; last=now;
+    if(running && state==='scan') tphase+=dt;
+    if(state==='scan'){
+      var p=Math.min(1,tphase/scanTime);
+      apply(p);
+      if(tphase>=scanTime){ state='done'; showDone(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  $('btnPlay').addEventListener('click',function(){ if(state==='done'){resetAll();return;} running=!running; btnPlayLbl.textContent=running?'⏸ 一時停止':'▶ 再生'; });
+  $('btnReset').addEventListener('click',function(){ resetAll(); });
+  $('btnSpeed').addEventListener('click',function(){ speed=(speed>=2)?1:(speed>=1.5?2:1.5); btnSpeedLbl.textContent='速度 x'+speed; });
+
+  apply(0); showScan();
+  requestAnimationFrame(frame);
+})();
+// ]]>
+  </script>
+</svg>
+  </div>
+</div>
+</body>
+</html>
