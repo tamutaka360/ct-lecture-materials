@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif">
+  <defs>
+    <linearGradient id="tubeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc266"/><stop offset="1" stop-color="#e8801a"/>
+    </linearGradient>
+    <linearGradient id="detGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2bb6c4"/><stop offset="1" stop-color="#13888f"/>
+    </linearGradient>
+    <linearGradient id="gantryGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9dde3"/><stop offset="0.5" stop-color="#a7afba"/><stop offset="1" stop-color="#cdd2da"/>
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6edf6"/><stop offset="1" stop-color="#b6c6e0"/>
+    </linearGradient>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#0c5350"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1280" height="720" fill="#f4f0e7"/>
+
+  <!-- title -->
+  <text x="640" y="44" text-anchor="middle" font-size="26" font-weight="bold" fill="#0c5350">CT スキャン：シングルヘリカルスキャン（ヘリカルCT）</text>
+  <text x="640" y="74" text-anchor="middle" font-size="14" fill="#555">管球と検出器が一方向に連続回転し、寝台を連続して送る → スキャン軌跡は螺旋（らせん）状に体を進む</text>
+
+  <!-- ===== patient group (helix-back + couch + body + helix-front) : slides ===== -->
+  <g id="patient">
+    <!-- helical trajectory : BACK arcs (behind the body, dimmed) -->
+    <path id="helixBack" d="" fill="none" stroke="#2f9e44" stroke-width="2.2" stroke-opacity="0.32" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- couch : raised so the pad nearly touches the patient's back -->
+    <rect x="400" y="433" width="860" height="28" rx="12" fill="#2b3340"/>
+    <rect x="412" y="426" width="836" height="12" rx="6" fill="#495a73"/>
+
+    <!-- body : supine (仰臥位) side-profile — head left = 頭側, nose pokes up (face-up cue), feet right = 足側 -->
+    <g stroke="#5a6b8c" stroke-width="2" fill="url(#bodyGrad)" stroke-linejoin="round">
+      <!-- leg + foot, tilted down ~10° about the hip so the heel rests on the couch -->
+      <g transform="rotate(10 910 362)">
+        <path d="M 950,318 L 1200,344 A 17 17 0 0 1 1200,378 L 950,410 Z"/>
+        <rect x="1194" y="346" width="66" height="30" rx="15" transform="rotate(-50 1200 361)"/>
+      </g>
+      <rect x="543" y="346" width="46" height="28" rx="9"/>
+      <ellipse cx="745" cy="352" rx="165" ry="74"/>
+      <rect x="600" y="372" width="275" height="48" rx="24"/>
+      <circle cx="910" cy="362" r="60"/>
+      <polygon points="486,280 470,322 506,322"/>
+      <ellipse cx="500" cy="360" rx="55" ry="48"/>
+    </g>
+
+    <!-- helical trajectory : FRONT arcs (in front of the body, bright) -->
+    <path id="helixFront" d="" fill="none" stroke="#2f9e44" stroke-width="2.7" stroke-opacity="0.9" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <text x="505" y="270" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b8a86">頭側</text>
+    <text x="1216" y="298" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b8a86">足側</text>
+  </g>
+
+  <!-- ===== gantry bore (fixed) : semi-transparent so the body shows through ===== -->
+  <ellipse cx="640" cy="358" rx="148" ry="280" fill="none" stroke="#8b94a3" stroke-width="3" opacity="0.55"/>
+  <ellipse cx="640" cy="358" rx="118" ry="250" fill="none" stroke="url(#gantryGrad)" stroke-width="60" opacity="0.45"/>
+  <ellipse cx="640" cy="358" rx="88" ry="220" fill="none" stroke="#6b7585" stroke-width="3" opacity="0.6"/>
+  <text x="640" y="128" text-anchor="middle" font-size="13" fill="#2b3340">ガントリ（連続回転）</text>
+
+  <!-- ===== rotating gantry parts (fixed at scan plane) ===== -->
+  <g id="gantryLayer">
+    <ellipse id="orbitGuide" cx="640" cy="358" rx="74" ry="210" fill="none" stroke="#1b8a86" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.5"/>
+    <polygon id="beam" points="" fill="#f5c400" fill-opacity="0.30" opacity="0"/>
+    <g id="rays"/>
+
+    <g id="detector">
+      <path d="M 0,-70 Q -20,0 0,70" fill="none" stroke="#0c5350" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 0,-70 Q -20,0 0,70" fill="none" stroke="url(#detGrad)" stroke-width="13" stroke-linecap="round"/>
+      <g stroke="#0c5350" stroke-width="1.3" opacity="0.55">
+        <line x1="-7" y1="-35" x2="1" y2="-35"/><line x1="-10" y1="0" x2="-2" y2="0"/><line x1="-7" y1="35" x2="1" y2="35"/>
+      </g>
+    </g>
+
+    <g id="tube">
+      <rect x="-44" y="-30" width="36" height="60" rx="8" fill="url(#tubeGrad)" stroke="#8a4500" stroke-width="2"/>
+      <rect x="-30" y="-30" width="6" height="60" fill="#ffffff" opacity="0.25"/>
+      <path d="M -8,-18 L -8,18 L 6,8 L 6,-8 Z" fill="#ffe6bf" stroke="#8a4500" stroke-width="1"/>
+      <circle cx="6" cy="0" r="5" fill="#ffffff"/>
+    </g>
+
+    <g id="dirArrow" transform="translate(640 114)">
+      <path d="M -26,-10 A 30 30 0 0 1 26,-10" fill="none" stroke="#0c5350" stroke-width="4" marker-end="url(#ah)"/>
+    </g>
+  </g>
+
+  <!-- ===== HUD : state box ===== -->
+  <rect x="924" y="118" width="332" height="132" rx="12" fill="#1b8a86" fill-opacity="0.08" stroke="#1b8a86" stroke-width="1.5"/>
+  <text id="turnTxt" x="946" y="154" font-size="22" font-weight="bold" fill="#0c5350">回転数  0.0 / 8 周</text>
+  <text id="stateTxt" x="946" y="184" font-size="15" fill="#233">連続回転（一方向 CW）＋ 連続送り</text>
+  <text id="dirTxt" x="946" y="207" font-size="13" fill="#555">螺旋状に連続スキャン中</text>
+  <text x="946" y="237" font-size="12" fill="#555">寝台送り</text>
+  <rect x="1012" y="226" width="222" height="13" rx="6" fill="#ffffff" stroke="#1b8a86" stroke-width="1"/>
+  <rect id="feedBar" x="1012" y="226" width="0" height="13" rx="6" fill="#2f9e44"/>
+
+  <!-- ===== legend ===== -->
+  <g>
+    <rect x="150" y="624" width="22" height="22" rx="4" fill="url(#tubeGrad)" stroke="#8a4500"/>
+    <text x="180" y="641" font-size="13" fill="#333">X線管（連続回転）</text>
+    <rect x="356" y="624" width="22" height="22" rx="4" fill="url(#detGrad)"/>
+    <text x="386" y="641" font-size="13" fill="#333">検出器（対向回転）</text>
+    <rect x="600" y="626" width="26" height="18" fill="#f5c400" fill-opacity="0.4"/>
+    <text x="634" y="641" font-size="13" fill="#333">X線曝射（連続）</text>
+    <path d="M 826,646 Q 836,624 846,646 Q 856,668 866,646" fill="none" stroke="#2f9e44" stroke-width="2.6"/>
+    <text x="876" y="641" font-size="13" fill="#333">螺旋スキャン軌跡（ヘリカル）</text>
+  </g>
+
+  <!-- ===== controls ===== -->
+  <g font-size="14" fill="#0c5350" text-anchor="middle" style="cursor:pointer">
+    <g id="btnPlay">
+      <rect x="24" y="672" width="138" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text id="btnPlayLbl" x="93" y="693">⏸ 一時停止</text>
+    </g>
+    <g id="btnReset">
+      <rect x="176" y="672" width="118" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text x="235" y="693">↺ リセット</text>
+    </g>
+    <g id="btnSpeed">
+      <rect x="308" y="672" width="108" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text id="btnSpeedLbl" x="362" y="693">速度 x1</text>
+    </g>
+  </g>
+
+  <script>
+// <![CDATA[
+(function(){
+  var SVGNS='http://www.w3.org/2000/svg';
+  function $(id){return document.getElementById(id);}
+  function el(t,a){var e=document.createElementNS(SVGNS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+
+  var cx=640, cy=358, A=74, B=210;
+  var Nturn=8, totalFeed=352, Tturn=1200;     // 8 rotations, table feed 352px, 1.2s / rotation
+  var totalTime=Nturn*Tturn;                  // 9600 ms continuous scan
+
+  var patient=$('patient');
+  var helixFront=$('helixFront'), helixBack=$('helixBack');
+  var beam=$('beam'), raysG=$('rays'), tube=$('tube'), det=$('detector');
+  var turnTxt=$('turnTxt'), stateTxt=$('stateTxt'), dirTxt=$('dirTxt'), feedBar=$('feedBar');
+  var btnPlayLbl=$('btnPlayLbl'), btnSpeedLbl=$('btnSpeedLbl');
+
+  var rays=[]; for(var i=0;i<7;i++){var ln=el('line',{stroke:'#f5c400','stroke-width':1.3,'stroke-opacity':0.75}); raysG.appendChild(ln); rays.push(ln);}
+
+  var state='scan', tphase=0, last=null, running=true, speed=1, loop=true;
+  var frontD='', backD='', lastWasFront=null;
+
+  function placeTube(g,px,py,z){
+    var ang=Math.atan2(cy-py,cx-px)*180/Math.PI;
+    var s=(1+0.20*z).toFixed(3);
+    g.setAttribute('transform','translate('+px.toFixed(1)+' '+py.toFixed(1)+') rotate('+ang.toFixed(1)+') scale('+s+')');
+    g.setAttribute('opacity',(0.62+0.38*(z+1)/2).toFixed(2));
+  }
+
+  function updateScan(phi){
+    var tx=cx+A*Math.sin(phi), ty=cy-B*Math.cos(phi), tz=Math.sin(phi);
+    var dx=cx-A*Math.sin(phi), dy=cy+B*Math.cos(phi), dz=-tz;
+    placeTube(tube,tx,ty,tz); placeTube(det,dx,dy,dz);
+    var vx=dx-tx, vy=dy-ty, L=Math.hypot(vx,vy)||1; vx/=L; vy/=L; var nx=-vy, ny=vx;
+    var hw=70, tw=6;
+    var pts=[[tx+nx*tw,ty+ny*tw],[dx+nx*hw,dy+ny*hw],[dx-nx*hw,dy-ny*hw],[tx-nx*tw,ty-ny*tw]];
+    beam.setAttribute('points',pts.map(function(q){return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' '));
+    beam.setAttribute('opacity',1);
+    for(var i=0;i<rays.length;i++){
+      var k=(i/(rays.length-1)-0.5)*2*hw; var ex=dx+nx*k, ey=dy+ny*k;
+      rays[i].setAttribute('x1',tx.toFixed(1)); rays[i].setAttribute('y1',ty.toFixed(1));
+      rays[i].setAttribute('x2',ex.toFixed(1)); rays[i].setAttribute('y2',ey.toFixed(1));
+      rays[i].setAttribute('opacity',0.75);
+    }
+  }
+
+  function addHelix(lx,ly,isFront){
+    if(isFront){
+      frontD+=(lastWasFront===true?'L':'M')+lx.toFixed(1)+' '+ly.toFixed(1)+' ';
+      helixFront.setAttribute('d',frontD);
+    } else {
+      backD+=(lastWasFront===false?'L':'M')+lx.toFixed(1)+' '+ly.toFixed(1)+' ';
+      helixBack.setAttribute('d',backD);
+    }
+    lastWasFront=isFront;
+  }
+
+  function showDone(){
+    beam.setAttribute('opacity',0);
+    for(var i=0;i<rays.length;i++) rays[i].setAttribute('opacity',0);
+    tube.setAttribute('opacity',0.35); det.setAttribute('opacity',0.35);
+    turnTxt.textContent='スキャン完了  '+Nturn+' 周';
+    stateTxt.textContent='螺旋（ヘリカル）軌跡を連続取得';
+    dirTxt.textContent='シングルヘリカルCT（連続回転＋連続送り）';
+    if(loop) setTimeout(function(){ if(state==='done') resetAll(); }, 2600);
+  }
+
+  function resetAll(){
+    frontD=''; backD=''; lastWasFront=null;
+    helixFront.setAttribute('d',''); helixBack.setAttribute('d','');
+    tphase=0; state='scan'; running=true;
+    tube.setAttribute('opacity',1); det.setAttribute('opacity',1);
+    feedBar.setAttribute('width',0);
+    patient.setAttribute('transform','translate(0,0)');
+    btnPlayLbl.textContent='⏸ 一時停止';
+  }
+
+  function frame(now){
+    if(last==null) last=now;
+    var dt=(now-last)*speed; if(dt<0) dt=0; last=now;
+    if(running && state==='scan') tphase+=dt;
+
+    if(state==='scan'){
+      var tt=Math.min(totalTime,tphase);
+      var phi=2*Math.PI*tt/Tturn;
+      var shift=totalFeed*tt/totalTime;
+      updateScan(phi);
+      addHelix(cx+A*Math.sin(phi)+shift, cy-B*Math.cos(phi), Math.sin(phi)>=0);
+      turnTxt.textContent='回転数  '+(tt/Tturn).toFixed(1)+' / '+Nturn+' 周';
+      feedBar.setAttribute('width',(222*tt/totalTime).toFixed(1));
+      patient.setAttribute('transform','translate('+(-shift).toFixed(1)+',0)');
+      if(tphase>=totalTime){ state='done'; showDone(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  $('btnPlay').addEventListener('click',function(){ if(state==='done'){resetAll();return;} running=!running; btnPlayLbl.textContent=running?'⏸ 一時停止':'▶ 再生'; });
+  $('btnReset').addEventListener('click',function(){ resetAll(); });
+  $('btnSpeed').addEventListener('click',function(){ speed=(speed>=2)?1:(speed>=1.5?2:1.5); btnSpeedLbl.textContent='速度 x'+speed; });
+
+  requestAnimationFrame(frame);
+})();
+// ]]>
+  </script>
+</svg>
