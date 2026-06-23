@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CT R-R方式 シングルスライス アニメーション</title>
+<style>
+  body{margin:0;background:#e9e4d6;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#333;}
+  .wrap{max-width:1040px;margin:0 auto;padding:18px 16px 36px;}
+  h1{font-size:20px;color:#0c5350;margin:6px 0 2px;}
+  .hint{font-size:13px;color:#6b6256;margin:0 0 12px;}
+  .stage{background:#f4f0e7;border:1px solid #d8d0bd;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden;}
+  svg{display:block;width:100%;height:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CT スキャン：R-R（Rotate–Rotate）方式・シングルスライス</h1>
+  <p class="hint">対向するX線管と検出器が1回転して1スライスを撮影 → 寝台を頭側へ1スライス分移動 → 回転方向を反転 …を10回くり返します。下のボタンで一時停止・リセット・速度変更ができます（自動再生／自動ループ）。</p>
+  <div class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif">
+  <defs>
+    <linearGradient id="tubeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc266"/><stop offset="1" stop-color="#e8801a"/>
+    </linearGradient>
+    <linearGradient id="detGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2bb6c4"/><stop offset="1" stop-color="#13888f"/>
+    </linearGradient>
+    <linearGradient id="gantryGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9dde3"/><stop offset="0.5" stop-color="#a7afba"/><stop offset="1" stop-color="#cdd2da"/>
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6edf6"/><stop offset="1" stop-color="#b6c6e0"/>
+    </linearGradient>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#0c5350"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1280" height="720" fill="#f4f0e7"/>
+
+  <!-- title -->
+  <text x="640" y="44" text-anchor="middle" font-size="26" font-weight="bold" fill="#0c5350">CT スキャン：R-R（Rotate–Rotate）方式・シングルスライス</text>
+  <text x="640" y="74" text-anchor="middle" font-size="14" fill="#555">対向するX線管－検出器が回転 → 寝台を頭側へ移動 → 回転方向を反転 …を10スライス繰り返す（ステップ&amp;シュート）</text>
+
+  <!-- ===== patient group (table + body + trail rings) : slides ===== -->
+  <g id="patient">
+    <!-- couch : raised so the pad nearly touches the patient's back -->
+    <rect x="400" y="433" width="860" height="28" rx="12" fill="#2b3340"/>
+    <rect x="412" y="426" width="836" height="12" rx="6" fill="#495a73"/>
+
+    <!-- body : supine (仰臥位) side-profile — head left = 頭側, nose (behind head, pokes up = face-up cue), feet right = 足側 -->
+    <g stroke="#5a6b8c" stroke-width="2" fill="url(#bodyGrad)" stroke-linejoin="round">
+      <!-- leg + foot, tilted down ~10° about the hip so the heel rests on the couch -->
+      <g transform="rotate(10 910 362)">
+        <!-- leg (both legs together, longer, tapering toward the ankle) -->
+        <path d="M 950,318 L 1200,344 A 17 17 0 0 1 1200,378 L 950,410 Z"/>
+        <!-- foot (angled, toes up to the right; heel touches the table) -->
+        <rect x="1194" y="346" width="66" height="30" rx="15" transform="rotate(-50 1200 361)"/>
+      </g>
+      <!-- neck -->
+      <rect x="543" y="346" width="46" height="28" rx="9"/>
+      <!-- torso -->
+      <ellipse cx="745" cy="352" rx="165" ry="74"/>
+      <!-- arm resting along the body -->
+      <rect x="600" y="372" width="275" height="48" rx="24"/>
+      <!-- pelvis / hip -->
+      <circle cx="910" cy="362" r="60"/>
+      <!-- nose : drawn BEHIND the head, tip pokes up from the rear-top = 仰臥位 (face up) -->
+      <polygon points="486,280 470,322 506,322"/>
+      <!-- head : very slightly horizontally-elongated ellipse -->
+      <ellipse cx="500" cy="360" rx="55" ry="48"/>
+    </g>
+
+    <text x="505" y="270" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b8a86">頭側</text>
+    <text x="1216" y="298" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b8a86">足側</text>
+
+    <!-- captured slice trail rings get appended here -->
+    <g id="trails"/>
+  </g>
+
+  <!-- ===== gantry bore (fixed) : patient passes through ===== -->
+  <ellipse cx="640" cy="358" rx="148" ry="280" fill="none" stroke="#8b94a3" stroke-width="3" opacity="0.55"/>
+  <ellipse cx="640" cy="358" rx="118" ry="250" fill="none" stroke="url(#gantryGrad)" stroke-width="60" opacity="0.45"/>
+  <ellipse cx="640" cy="358" rx="88" ry="220" fill="none" stroke="#6b7585" stroke-width="3" opacity="0.6"/>
+  <text x="640" y="128" text-anchor="middle" font-size="13" fill="#2b3340">ガントリ（回転架台）</text>
+
+  <!-- ===== rotating gantry parts (fixed at scan plane) ===== -->
+  <g id="gantryLayer">
+    <ellipse id="orbitGuide" cx="640" cy="358" rx="74" ry="210" fill="none" stroke="#1b8a86" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.5"/>
+    <path id="activeTrace" d="" fill="none" stroke="#f5c400" stroke-width="4" stroke-linecap="round" opacity="0"/>
+    <polygon id="beam" points="" fill="#f5c400" fill-opacity="0.30" opacity="0"/>
+    <g id="rays"/>
+
+    <g id="detector">
+      <path d="M 0,-70 Q -20,0 0,70" fill="none" stroke="#0c5350" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 0,-70 Q -20,0 0,70" fill="none" stroke="url(#detGrad)" stroke-width="13" stroke-linecap="round"/>
+      <g stroke="#0c5350" stroke-width="1.3" opacity="0.55">
+        <line x1="-7" y1="-35" x2="1" y2="-35"/><line x1="-10" y1="0" x2="-2" y2="0"/><line x1="-7" y1="35" x2="1" y2="35"/>
+      </g>
+    </g>
+
+    <g id="tube">
+      <rect x="-44" y="-30" width="36" height="60" rx="8" fill="url(#tubeGrad)" stroke="#8a4500" stroke-width="2"/>
+      <rect x="-30" y="-30" width="6" height="60" fill="#ffffff" opacity="0.25"/>
+      <path d="M -8,-18 L -8,18 L 6,8 L 6,-8 Z" fill="#ffe6bf" stroke="#8a4500" stroke-width="1"/>
+      <circle cx="6" cy="0" r="5" fill="#ffffff"/>
+    </g>
+
+    <g id="dirArrow">
+      <path d="M -26,-10 A 30 30 0 0 1 26,-10" fill="none" stroke="#0c5350" stroke-width="4" marker-end="url(#ah)"/>
+    </g>
+  </g>
+
+  <!-- ===== HUD : state box ===== -->
+  <rect x="924" y="118" width="332" height="132" rx="12" fill="#1b8a86" fill-opacity="0.08" stroke="#1b8a86" stroke-width="1.5"/>
+  <text id="sliceTxt" x="946" y="156" font-size="22" font-weight="bold" fill="#0c5350">スライス  1 / 10</text>
+  <text id="stateTxt" x="946" y="190" font-size="16" fill="#233">回転撮影中（360°）</text>
+  <text id="dirTxt" x="946" y="216" font-size="13" fill="#555">回転方向：時計回り CW ↻</text>
+  <g id="progDots"/>
+
+  <!-- ===== legend ===== -->
+  <g>
+    <rect x="160" y="624" width="22" height="22" rx="4" fill="url(#tubeGrad)" stroke="#8a4500"/>
+    <text x="190" y="641" font-size="13" fill="#333">X線管（回転）</text>
+    <rect x="356" y="624" width="22" height="22" rx="4" fill="url(#detGrad)"/>
+    <text x="386" y="641" font-size="13" fill="#333">検出器（対向回転）</text>
+    <rect x="600" y="626" width="26" height="18" fill="#f5c400" fill-opacity="0.4"/>
+    <text x="634" y="641" font-size="13" fill="#333">X線曝射（ファンビーム）</text>
+    <ellipse cx="892" cy="635" rx="10" ry="18" fill="none" stroke="#2f9e44" stroke-width="2.4"/>
+    <text x="910" y="641" font-size="13" fill="#333">撮影済みスライスの軌道</text>
+  </g>
+
+  <!-- ===== controls ===== -->
+  <g font-size="14" fill="#0c5350" text-anchor="middle" style="cursor:pointer">
+    <g id="btnPlay">
+      <rect x="24" y="672" width="138" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text id="btnPlayLbl" x="93" y="693">⏸ 一時停止</text>
+    </g>
+    <g id="btnReset">
+      <rect x="176" y="672" width="118" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text x="235" y="693">↺ リセット</text>
+    </g>
+    <g id="btnSpeed">
+      <rect x="308" y="672" width="108" height="32" rx="8" fill="#eaf5f4" stroke="#1b8a86"/>
+      <text id="btnSpeedLbl" x="362" y="693">速度 x1</text>
+    </g>
+  </g>
+
+  <script>
+// <![CDATA[
+(function(){
+  var SVGNS='http://www.w3.org/2000/svg';
+  function $(id){return document.getElementById(id);}
+  function el(t,a){var e=document.createElementNS(SVGNS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+
+  var cx=640, cy=358, A=74, B=210, step=40, N=10;
+  var Dscan=1600, Dmove=760;
+
+  var patient=$('patient'), trails=$('trails');
+  var beam=$('beam'), raysG=$('rays'), tube=$('tube'), det=$('detector');
+  var active=$('activeTrace'), dirArrow=$('dirArrow');
+  var sliceTxt=$('sliceTxt'), stateTxt=$('stateTxt'), dirTxt=$('dirTxt');
+  var btnPlayLbl=$('btnPlayLbl'), btnSpeedLbl=$('btnSpeedLbl');
+
+  // fan rays
+  var rays=[]; for(var i=0;i<7;i++){var ln=el('line',{stroke:'#f5c400','stroke-width':1.3,'stroke-opacity':0.75}); raysG.appendChild(ln); rays.push(ln);}
+  // progress dots
+  var dots=[]; for(var i=0;i<N;i++){var c=el('circle',{cx:(946+i*30),cy:232,r:7,fill:'#ffffff',stroke:'#1b8a86','stroke-width':2}); $('progDots').appendChild(c); dots.push(c);}
+
+  var state='scan', slice=0, dir=1, patientShift=0, tphase=0, last=null, running=true, speed=1, loop=true;
+
+  function easeInOut(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+
+  function arcPath(rx,ry,phi){
+    var n=Math.max(2,Math.round(64*Math.abs(phi)/(2*Math.PI)));
+    var d='';
+    for(var i=0;i<=n;i++){var a=phi*i/n; var x=cx+rx*Math.sin(a); var y=cy-ry*Math.cos(a); d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';}
+    return d;
+  }
+
+  function placeTube(g,px,py,z){
+    var ang=Math.atan2(cy-py,cx-px)*180/Math.PI;
+    var s=(1+0.20*z).toFixed(3);
+    g.setAttribute('transform','translate('+px.toFixed(1)+' '+py.toFixed(1)+') rotate('+ang.toFixed(1)+') scale('+s+')');
+    g.setAttribute('opacity',(0.62+0.38*(z+1)/2).toFixed(2));
+  }
+
+  function setDirArrow(){
+    dirArrow.setAttribute('transform','translate('+cx+' '+(cy-B-34)+') '+(dir>0?'':'scale(-1,1)'));
+  }
+
+  function updateScan(phi){
+    var tx=cx+A*Math.sin(phi), ty=cy-B*Math.cos(phi), tz=Math.sin(phi);
+    var dx=cx-A*Math.sin(phi), dy=cy+B*Math.cos(phi), dz=-tz;
+    placeTube(tube,tx,ty,tz); placeTube(det,dx,dy,dz);
+    var vx=dx-tx, vy=dy-ty, L=Math.hypot(vx,vy)||1; vx/=L; vy/=L; var nx=-vy, ny=vx;
+    var hw=70, tw=6;
+    var pts=[[tx+nx*tw,ty+ny*tw],[dx+nx*hw,dy+ny*hw],[dx-nx*hw,dy-ny*hw],[tx-nx*tw,ty-ny*tw]];
+    beam.setAttribute('points',pts.map(function(q){return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' '));
+    beam.setAttribute('opacity',1);
+    for(var i=0;i<rays.length;i++){
+      var k=(i/(rays.length-1)-0.5)*2*hw; var ex=dx+nx*k, ey=dy+ny*k;
+      rays[i].setAttribute('x1',tx.toFixed(1)); rays[i].setAttribute('y1',ty.toFixed(1));
+      rays[i].setAttribute('x2',ex.toFixed(1)); rays[i].setAttribute('y2',ey.toFixed(1));
+      rays[i].setAttribute('opacity',0.75);
+    }
+    active.setAttribute('d',arcPath(A,B,phi));
+    active.setAttribute('opacity',1);
+    sliceTxt.textContent='スライス  '+(slice+1)+' / '+N;
+    stateTxt.textContent='回転撮影中（360°）';
+    dirTxt.textContent='回転方向：'+(dir>0?'時計回り CW ↻':'反時計回り CCW ↺');
+  }
+
+  function hideBeam(o){
+    beam.setAttribute('opacity',0);
+    for(var i=0;i<rays.length;i++) rays[i].setAttribute('opacity',0);
+    active.setAttribute('opacity',0);
+    tube.setAttribute('opacity',o); det.setAttribute('opacity',o);
+  }
+
+  function addTrail(i){
+    trails.appendChild(el('ellipse',{cx:(cx+i*step),cy:cy,rx:A,ry:B,fill:'none',stroke:'#2f9e44','stroke-width':2.4,'stroke-opacity':0.55}));
+    dots[i].setAttribute('fill','#2f9e44'); dots[i].setAttribute('stroke','#1b6b34');
+  }
+
+  function prepSlice(){ active.setAttribute('d',''); setDirArrow(); }
+
+  function showDone(){
+    hideBeam(0.3);
+    sliceTxt.textContent='撮影完了  10 / 10';
+    stateTxt.textContent='10スライスを連続取得';
+    dirTxt.textContent='シングルスライスCT（R-R方式）';
+    if(loop) setTimeout(function(){ if(state==='done') resetAll(); }, 2400);
+  }
+
+  function resetAll(){
+    while(trails.firstChild) trails.removeChild(trails.firstChild);
+    for(var i=0;i<N;i++){dots[i].setAttribute('fill','#ffffff'); dots[i].setAttribute('stroke','#1b8a86');}
+    slice=0; dir=1; patientShift=0; state='scan'; tphase=0; running=true;
+    tube.setAttribute('opacity',1); det.setAttribute('opacity',1);
+    prepSlice();
+    patient.setAttribute('transform','translate(0,0)');
+    btnPlayLbl.textContent='⏸ 一時停止';
+  }
+
+  function frame(now){
+    if(last==null) last=now;
+    var dt=(now-last)*speed; if(dt<0) dt=0; last=now;
+    if(running) tphase+=dt;
+
+    if(state==='scan'){
+      var t=Math.min(1,tphase/Dscan);
+      updateScan(2*Math.PI*dir*t);
+      if(t>=1){ addTrail(slice); active.setAttribute('d',''); state='move'; tphase=0; }
+    } else if(state==='move'){
+      var tm=Math.min(1,tphase/Dmove);
+      patientShift=slice*step+step*easeInOut(tm);
+      hideBeam(0.35);
+      sliceTxt.textContent='スライス  '+(slice+1)+' 撮影完了';
+      stateTxt.textContent='寝台を頭側へ移動中 →';
+      dirTxt.textContent='次は回転方向を反転';
+      if(tm>=1){
+        patientShift=(slice+1)*step; slice++; dir=-dir;
+        if(slice>=N){ state='done'; showDone(); }
+        else { state='scan'; tphase=0; prepSlice(); }
+      }
+    }
+    patient.setAttribute('transform','translate('+(-patientShift).toFixed(1)+',0)');
+    requestAnimationFrame(frame);
+  }
+
+  $('btnPlay').addEventListener('click',function(){ if(state==='done'){resetAll();return;} running=!running; btnPlayLbl.textContent=running?'⏸ 一時停止':'▶ 再生'; });
+  $('btnReset').addEventListener('click',function(){ resetAll(); });
+  $('btnSpeed').addEventListener('click',function(){ speed=(speed>=2)?1:(speed>=1.5?2:1.5); btnSpeedLbl.textContent='速度 x'+speed; });
+
+  setDirArrow();
+  requestAnimationFrame(frame);
+})();
+// ]]>
+  </script>
+</svg>
+  </div>
+</div>
+</body>
+</html>
