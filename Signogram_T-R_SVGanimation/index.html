@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第1世代CT（Translate-Rotate方式）：ペンシルビームからサイノグラムへ</title>
+<style>
+  html,body{margin:0;padding:0;background:#ece7db;
+    font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,'Noto Sans JP',sans-serif;}
+  .page{max-width:1180px;margin:0 auto;padding:18px 18px 28px;}
+  .hint{font-size:13.5px;color:#4a5a58;margin:2px 0 12px;text-align:center;}
+  .hint b{color:#0c5350;}
+  .stage-wrap{background:#f4f0e7;border:1px solid #ddd5c5;border-radius:12px;
+    box-shadow:0 6px 22px rgba(40,60,58,0.10);overflow:hidden;}
+  .stage-wrap svg{width:100%;height:auto;display:block;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hint"><b>クリック</b>（または <b>Enter / Space</b>）で並進スキャン → もう一度クリックで15°回転して次のスキャン、を繰り返します。</div>
+  <div class="stage-wrap">
+<svg xmlns="http://www.w3.org/2000/svg" id="stage" width="100%" height="100%" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" font-family="sans-serif">
+  <style>
+    text{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,'Noto Sans JP',sans-serif;}
+    #stage{cursor:pointer;-webkit-user-select:none;user-select:none;}
+  </style>
+
+  <rect x="0" y="0" width="1280" height="720" fill="#f4f0e7"/>
+
+  <!-- header -->
+  <text x="40" y="46" font-size="26" font-weight="700" fill="#10302e">第1世代CT（Translate-Rotate方式）：ペンシルビームからサイノグラムへ</text>
+  <text x="41" y="73" font-size="15" fill="#5c5b52">クリックごとに、ペンシルビームをパルス照射しながら並進スキャンし、検出器信号をサイノグラムへ1行ずつ記録します。スキャン後のクリックで15°回転します。</text>
+  <line x1="40" y1="84" x2="1244" y2="84" stroke="#1b8a86" stroke-width="2" opacity="0.55"/>
+
+  <!-- left card -->
+  <rect x="36" y="96" width="596" height="576" rx="14" fill="#fbf9f4" stroke="#e4ddcf" stroke-width="1.5"/>
+  <text x="58" y="125" font-size="16" font-weight="700" fill="#10302e">第1世代CT 撮影系（胸部横断）：並進＋回転</text>
+  <text id="thetaDisp" x="610" y="125" font-size="23" font-weight="700" fill="#0c5350" text-anchor="end">θ = 0°</text>
+  <text id="stepDisp" x="610" y="147" font-size="13" fill="#6b6a60" text-anchor="end">ビュー 1 / 25</text>
+
+  <g id="gOrbit"></g>
+  <g id="gGantry"></g>
+  <g id="gPhantom"></g>
+  <g id="gAnat"></g>
+  <g id="gBeamTop"></g>
+  <g id="gRotArrow"></g>
+  <g id="gGantryLabels"></g>
+  <text id="statusDisp" x="334" y="657" font-size="14.5" font-weight="600" fill="#0c5350" text-anchor="middle">クリック：θ = 0° の並進スキャンを開始</text>
+
+  <!-- right card -->
+  <rect x="648" y="96" width="596" height="576" rx="14" fill="#fbf9f4" stroke="#e4ddcf" stroke-width="1.5"/>
+  <text x="672" y="125" font-size="16" font-weight="700" fill="#10302e">サイノグラム（縦：投影角度 θ ／ 横：検出器チャンネル＝並進位置）</text>
+
+  <rect x="760" y="186" width="430" height="430" fill="#ece6da"/>
+  <g id="gSino"></g>
+  <g id="gSinoHi"></g>
+  <rect x="760" y="186" width="430" height="430" fill="none" stroke="#9c9484" stroke-width="1.4"/>
+
+  <!-- axes -->
+  <line x1="760" y1="186" x2="760" y2="616" stroke="#b7b0a1" stroke-width="1.4"/>
+  <line x1="760" y1="616" x2="1190" y2="616" stroke="#b7b0a1" stroke-width="1.4"/>
+  <line x1="752" y1="186" x2="760" y2="186" stroke="#b7b0a1" stroke-width="1.4"/>
+  <line x1="752" y1="401" x2="760" y2="401" stroke="#b7b0a1" stroke-width="1.4"/>
+  <line x1="752" y1="616" x2="760" y2="616" stroke="#b7b0a1" stroke-width="1.4"/>
+  <text x="747" y="190" font-size="13" fill="#5c5b52" text-anchor="end">0°</text>
+  <text x="747" y="405" font-size="13" fill="#5c5b52" text-anchor="end">180°</text>
+  <text x="747" y="620" font-size="13" fill="#5c5b52" text-anchor="end">360°</text>
+  <text x="702" y="401" font-size="14" fill="#3d4a48" font-weight="600" text-anchor="middle" transform="rotate(-90 702 401)">投影角度 θ</text>
+  <text x="975" y="650" font-size="14" fill="#3d4a48" font-weight="600" text-anchor="middle">検出器チャンネル（並進位置）</text>
+  <text x="975" y="635" font-size="11.5" fill="#5c5b52" text-anchor="middle" opacity="0.85">← 1 ｜ チャンネル ｜ N →</text>
+
+  <!-- footer -->
+  <text x="640" y="700" font-size="14.5" fill="#0c5350" font-weight="600" text-anchor="middle">クリック / Enter / Space：並進スキャン → 15°回転 → 並進スキャン …（360°収集後、クリックで最初から）</text>
+
+  <script type="text/javascript">
+  //<![CDATA[
+  (function(){
+   var NS="http://www.w3.org/2000/svg", D=document;
+   function mk(t,a){var e=D.createElementNS(NS,t);if(a)for(var k in a)e.setAttribute(k,a[k]);return e;}
+   function put(p,t,a){var e=mk(t,a);p.appendChild(e);return e;}
+   var DEG=Math.PI/180;
+
+   // geometry
+   var CX=334, CY=398, R=212, T=142, NCH=48, NA=25, DA=15;
+   var SAMPLE_MS=50, PULSE_ON=32, ROT_MS=520;
+   var SG={x:760,y:186,w:430,h:430}; var colW=SG.w/NCH, rowH=SG.h/NA;
+   function tOf(i){return -T+(i+0.5)*(2*T/NCH);}
+   function sx(x){return CX+x;} function sy(y){return CY-y;}
+
+   // phantom (math coords, +x right, +y up)
+   var TISS="#9a9486", LUNG="#141414", MED="#c3bcad", BONE="#efe9dd";
+   var ph=[
+    {x:0,y:0,a:116,b:78,rot:0,mu:0.20,fill:TISS,kind:'body'},
+    {x:-52,y:2,a:33,b:51,rot:8,mu:-0.20,fill:LUNG,kind:'lung'},
+    {x:52,y:2,a:33,b:51,rot:-8,mu:-0.20,fill:LUNG,kind:'lung'},
+    {x:3,y:-2,a:21,b:40,rot:0,mu:0.05,fill:MED,kind:'med'},
+    {x:-15,y:9,a:25,b:29,rot:13,mu:0.05,fill:MED,kind:'med'},
+    {x:0,y:-55,a:15,b:13,rot:0,mu:0.55,fill:BONE,kind:'bone'},
+    {x:0,y:64,a:9,b:6,rot:0,mu:0.26,fill:BONE,kind:'bone'}
+   ];
+   var ribA=[42,70,110,138,-42,-70,-110,-138];
+   for(var r=0;r<ribA.length;r++){var tt=ribA[r]*DEG;var rx=0.92*116*Math.cos(tt),ry=0.92*78*Math.sin(tt);
+     ph.push({x:rx,y:ry,a:5,b:12,rot:Math.atan2(ry,rx)/DEG,mu:0.42,fill:BONE,kind:'bone'});}
+
+   function lineInt(ox,oy,dx,dy){var s=0;
+    for(var i=0;i<ph.length;i++){var e=ph[i];
+     var c=Math.cos(-e.rot*DEG), sn=Math.sin(-e.rot*DEG);
+     var px=ox-e.x, py=oy-e.y;
+     var lx=px*c-py*sn, ly=px*sn+py*c;
+     var ldx=dx*c-dy*sn, ldy=dx*sn+dy*c;
+     var A=ldx*ldx/(e.a*e.a)+ldy*ldy/(e.b*e.b);
+     var B=2*(lx*ldx/(e.a*e.a)+ly*ldy/(e.b*e.b));
+     var C=lx*lx/(e.a*e.a)+ly*ly/(e.b*e.b)-1;
+     var disc=B*B-4*A*C;
+     if(disc>0){s+=e.mu*Math.sqrt(disc)/A;}
+    }
+    return s;
+   }
+
+   // parallel-beam sinogram data
+   var sino=[];
+   for(var k=0;k<NA;k++){var a=k*DA*DEG;var ux=Math.sin(a),uy=Math.cos(a),pxv=Math.cos(a),pyv=-Math.sin(a);
+    var row=[];
+    for(var i=0;i<NCH;i++){var t=tOf(i);
+     var p=lineInt(R*ux+t*pxv, R*uy+t*pyv, -ux, -uy); if(p<0)p=0; row.push(p);}
+    sino.push(row);
+   }
+   var flat=[]; for(k=0;k<NA;k++)for(i=0;i<NCH;i++)flat.push(sino[k][i]);
+   flat.sort(function(a,b){return a-b;});
+   var LO=flat[Math.floor(flat.length*0.34)], HI=flat[Math.floor(flat.length*0.985)];
+   if(HI<=LO)HI=LO+1;
+   function gray(p){var n=(p-LO)/(HI-LO); if(n<0)n=0; if(n>1)n=1; n=Math.pow(n,0.9); var g=Math.round(255*n); return "rgb("+g+","+g+","+g+")";}
+
+   // orbit
+   var gOrbit=D.getElementById('gOrbit');
+   put(gOrbit,'circle',{cx:CX,cy:CY,r:R,fill:'none',stroke:'#cfc8b8','stroke-width':1.2,'stroke-dasharray':'4 5',opacity:0.9});
+   put(gOrbit,'line',{x1:CX-7,y1:CY,x2:CX+7,y2:CY,stroke:'#9a9486','stroke-width':1.3});
+   put(gOrbit,'line',{x1:CX,y1:CY-7,x2:CX,y2:CY+7,stroke:'#9a9486','stroke-width':1.3});
+
+   // phantom
+   var gPh=D.getElementById('gPhantom');
+   for(i=0;i<ph.length;i++){var e=ph[i];
+    var stroke='none', sw=0;
+    if(e.kind==='body'){stroke='#6f6a60';sw=1.6;}
+    else if(e.kind==='bone'){stroke='#c7c0b0';sw=0.8;}
+    var cx=sx(e.x), cy=sy(e.y);
+    put(gPh,'ellipse',{cx:cx,cy:cy,rx:e.a,ry:e.b,fill:e.fill,stroke:stroke,'stroke-width':sw,transform:'rotate('+(-e.rot)+' '+cx+' '+cy+')'});
+   }
+
+   // anatomy labels
+   var gA=D.getElementById('gAnat');
+   function lab(x,y,tx,fill,halo,fs){var e=put(gA,'text',{x:x,y:y,'font-size':fs||12.5,fill:fill,'text-anchor':'middle'});
+    if(halo){e.setAttribute('paint-order','stroke');e.setAttribute('stroke','#fbf9f4');e.setAttribute('stroke-width',3);e.setAttribute('stroke-linejoin','round');}
+    e.textContent=tx;return e;}
+   lab(sx(-52),sy(24),'肺野','#f0f0f0',false);
+   lab(sx(52),sy(24),'肺野','#f0f0f0',false);
+   lab(sx(-4),sy(-3),'縦隔・心臓','#2c2c2c',true);
+   lab(sx(0),sy(-55),'椎体','#2c2c2c',true,11.5);
+   put(gA,'line',{x1:sx(90),y1:sy(52),x2:sx(72),y2:sy(44),stroke:'#6f6a60','stroke-width':1});
+   lab(sx(104),sy(54),'肋骨','#2c2c2c',true);
+
+   // ---- gantry group (defined at theta=0, rotated as a whole) ----
+   var gG=D.getElementById('gGantry');
+   var railY1=CY-R, railY2=CY+R, railHalf=T+18;
+   // rails
+   put(gG,'line',{x1:CX-railHalf,y1:railY1,x2:CX+railHalf,y2:railY1,stroke:'#c9c2b2','stroke-width':5,'stroke-linecap':'round'});
+   put(gG,'line',{x1:CX-railHalf,y1:railY1,x2:CX+railHalf,y2:railY1,stroke:'#8f897a','stroke-width':1.2});
+   put(gG,'line',{x1:CX-railHalf,y1:railY2,x2:CX+railHalf,y2:railY2,stroke:'#c9c2b2','stroke-width':5,'stroke-linecap':'round'});
+   put(gG,'line',{x1:CX-railHalf,y1:railY2,x2:CX+railHalf,y2:railY2,stroke:'#8f897a','stroke-width':1.2});
+   // pulse position dots (revealed one per pulse during a sweep)
+   var dots=[];
+   for(i=0;i<NCH;i++){dots.push(put(gG,'circle',{cx:CX+tOf(i),cy:railY1+11,r:1.8,fill:'#1b8a86',visibility:'hidden'}));}
+   // translation progress line (near detector rail)
+   var prog=put(gG,'line',{x1:CX-T,y1:railY2-13,x2:CX-T,y2:railY2-13,stroke:'#1b8a86','stroke-width':2.5,'stroke-opacity':0.55,'stroke-linecap':'round',visibility:'hidden'});
+   // translation direction arrow
+   var gArr=put(gG,'g',{});
+   put(gArr,'line',{x1:-36,y1:0,x2:26,y2:0,stroke:'#0c5350','stroke-width':2,'stroke-opacity':0.7});
+   put(gArr,'polygon',{points:'26,-5 40,0 26,5',fill:'#0c5350','fill-opacity':0.8});
+   // beam (pencil) + flash
+   var gB=put(gG,'g',{visibility:'hidden'});
+   var beamHalo=put(gB,'line',{x1:0,y1:railY1+14,x2:0,y2:railY2-8,stroke:'#1b8a86','stroke-width':6,'stroke-opacity':0.22,'stroke-linecap':'round'});
+   var beamCore=put(gB,'line',{x1:0,y1:railY1+14,x2:0,y2:railY2-8,stroke:'#0c5350','stroke-width':1.8,'stroke-opacity':0.95});
+   var flashHalo=put(gB,'circle',{cx:0,cy:railY1+13,r:8,fill:'#ffd79a','fill-opacity':0.35});
+   var flashCore=put(gB,'circle',{cx:0,cy:railY1+13,r:3.6,fill:'#ffd79a','fill-opacity':0.95});
+   // tube (translates along top rail)
+   var gTube=put(gG,'g',{});
+   put(gTube,'rect',{x:-13,y:-24,width:26,height:18,rx:4,fill:'#0c5350',stroke:'#08403d','stroke-width':1});
+   put(gTube,'polygon',{points:'-6,-6 6,-6 3,5 -3,5',fill:'#0c5350'});
+   put(gTube,'circle',{cx:0,cy:-10,r:2.3,fill:'#ffd79a'});
+   // detector (single element, translates along bottom rail)
+   var gDet=put(gG,'g',{});
+   put(gDet,'rect',{x:-11,y:-2,width:22,height:11,rx:2,fill:'#5f5f5f'});
+   var detFace=put(gDet,'rect',{x:-8,y:-6,width:16,height:5,rx:1,fill:'#888',stroke:'#5f5f5f','stroke-width':0.6});
+
+   // rotation arrow (outside gantry group)
+   var gRA=D.getElementById('gRotArrow');
+   var rotPath=put(gRA,'path',{d:'',fill:'none',stroke:'#b5651d','stroke-width':2.5,'stroke-opacity':0.85,visibility:'hidden'});
+   var rotHead=put(gRA,'polygon',{points:'0,-5.5 11,0 0,5.5',fill:'#b5651d','fill-opacity':0.9,visibility:'hidden'});
+
+   // gantry labels (outside rotated group, follow rail centers)
+   var gGL=D.getElementById('gGantryLabels');
+   function glab(tx){var e=put(gGL,'text',{'font-size':12.5,'font-weight':600,fill:'#0c5350','text-anchor':'middle','paint-order':'stroke',stroke:'#fbf9f4','stroke-width':3,'stroke-linejoin':'round'});e.textContent=tx;return e;}
+   var lblTube=glab('X線管（ペンシルビーム）');
+   var lblDet=glab('検出器（1素子）');
+
+   // sinogram cells
+   var gS=D.getElementById('gSino'); var cells=[];
+   for(k=0;k<NA;k++){var rowC=[];for(i=0;i<NCH;i++){
+     var c=put(gS,'rect',{x:(SG.x+i*colW).toFixed(2),y:(SG.y+k*rowH).toFixed(2),width:(colW+0.7).toFixed(2),height:(rowH+0.7).toFixed(2),fill:gray(sino[k][i]),visibility:'hidden'});
+     rowC.push(c);}
+    cells.push(rowC);}
+
+   // highlight
+   var gHi=D.getElementById('gSinoHi');
+   var hiBand=put(gHi,'rect',{x:SG.x,y:SG.y,width:SG.w,height:rowH,fill:'#1b8a86','fill-opacity':0.20,stroke:'#0c5350','stroke-width':1.2});
+   var rEdge=SG.x+SG.w;
+   var hiPtr=put(gHi,'polygon',{points:(rEdge+2)+',-7 '+(rEdge+2)+',7 '+(rEdge-7)+',0',fill:'#0c5350'});
+   var hiLbl=put(gHi,'text',{x:rEdge+10,y:0,'font-size':12,'font-weight':700,fill:'#0c5350','text-anchor':'start'});
+   var hiCell=put(gHi,'rect',{x:SG.x,y:SG.y,width:colW+0.7,height:rowH+0.7,fill:'none',stroke:'#e2a23c','stroke-width':1.6,visibility:'hidden'});
+
+   var thetaDisp=D.getElementById('thetaDisp'), stepDisp=D.getElementById('stepDisp'), statusDisp=D.getElementById('statusDisp');
+
+   // ---- state machine ----
+   var state='idle';      // idle | rotating | scanning
+   var step=0;            // view index being (or about to be) scanned
+   var scanned=-1;        // last fully recorded view index
+   var dir=1;             // sweep direction (+1: left->right)
+   var st0=0, rt0=0, srcDeg=0, tgtDeg=0;
+   var rafActive=false;
+
+   function ease(p){return p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;}
+
+   function setAngle(d){
+    gG.setAttribute('transform','rotate('+d+' '+CX+' '+CY+')');
+    var a=d*DEG, sxv=Math.sin(a), cyv=Math.cos(a), LR=R+30;
+    lblTube.setAttribute('x',(CX+LR*sxv).toFixed(1)); lblTube.setAttribute('y',(CY-LR*cyv+4).toFixed(1));
+    lblDet.setAttribute('x',(CX-LR*sxv).toFixed(1)); lblDet.setAttribute('y',(CY+LR*cyv+4).toFixed(1));
+    thetaDisp.textContent='θ = '+Math.round(d)+'°';
+   }
+   function setCarriage(t){
+    var x=CX+t;
+    gTube.setAttribute('transform','translate('+x.toFixed(2)+','+(railY1)+')');
+    gDet.setAttribute('transform','translate('+x.toFixed(2)+','+(railY2)+')');
+    beamHalo.setAttribute('x1',x);beamHalo.setAttribute('x2',x);
+    beamCore.setAttribute('x1',x);beamCore.setAttribute('x2',x);
+    flashHalo.setAttribute('cx',x);flashCore.setAttribute('cx',x);
+   }
+   function setBand(k){
+    var ry=SG.y+k*rowH;
+    hiBand.setAttribute('y',ry.toFixed(2));
+    hiPtr.setAttribute('transform','translate(0,'+(ry+rowH/2).toFixed(2)+')');
+    hiLbl.setAttribute('y',(ry+rowH/2+4).toFixed(2));
+    hiLbl.textContent='θ='+(k*DA)+'°';
+   }
+   function chanOf(j){return dir>0 ? j : NCH-1-j;}
+
+   function beginSweep(){
+    rotPath.setAttribute('visibility','hidden'); rotHead.setAttribute('visibility','hidden');
+    dir=(step%2===0)?1:-1;
+    gArr.setAttribute('transform','translate('+CX+','+(railY1-26)+') scale('+dir+',1)');
+    for(var i=0;i<NCH;i++)dots[i].setAttribute('visibility','hidden');
+    var x0=CX+(dir>0?-T:T);
+    prog.setAttribute('x1',x0);prog.setAttribute('x2',x0);prog.setAttribute('visibility','visible');
+    setCarriage(dir>0?-T:T);
+    setBand(step);
+    stepDisp.textContent='ビュー '+(step+1)+' / '+NA;
+    statusDisp.textContent='並進スキャン中（θ = '+(step*DA)+'°）：ペンシルビームをパルス照射';
+    state='scanning'; st0=performance.now();
+    startRaf();
+   }
+   function finishScan(){
+    for(var j=0;j<NCH;j++){var i=chanOf(j);
+     cells[step][i].setAttribute('visibility','visible');
+     dots[i].setAttribute('visibility','visible');}
+    prog.setAttribute('x2',CX+(dir>0?T:-T));
+    gB.setAttribute('visibility','hidden');
+    hiCell.setAttribute('visibility','hidden');
+    setCarriage(dir>0?T:-T);
+    scanned=step; state='idle';
+    if(scanned>=NA-1){statusDisp.textContent='360°分の収集が完了しました。クリックで最初から再開します。';}
+    else{statusDisp.textContent='1行記録しました。クリック：15°回転して θ = '+((scanned+1)*DA)+'° をスキャン';}
+   }
+   function beginRotation(){
+    step=scanned+1;
+    srcDeg=scanned*DA; tgtDeg=step*DA;
+    // rotation arc indicator
+    var rr=R+14, a0=srcDeg*DEG, a1=tgtDeg*DEG;
+    var x0=CX+rr*Math.sin(a0), y0=CY-rr*Math.cos(a0);
+    var x1=CX+rr*Math.sin(a1), y1=CY-rr*Math.cos(a1);
+    rotPath.setAttribute('d','M '+x0.toFixed(1)+' '+y0.toFixed(1)+' A '+rr+' '+rr+' 0 0 1 '+x1.toFixed(1)+' '+y1.toFixed(1));
+    rotPath.setAttribute('visibility','visible');
+    rotHead.setAttribute('transform','translate('+x1.toFixed(1)+','+y1.toFixed(1)+') rotate('+(tgtDeg).toFixed(1)+')');
+    rotHead.setAttribute('visibility','visible');
+    statusDisp.textContent='回転中 …（θ = '+srcDeg+'° → '+tgtDeg+'°）';
+    gB.setAttribute('visibility','hidden');
+    state='rotating'; rt0=performance.now();
+    startRaf();
+   }
+   function resetAll(){
+    for(var k=0;k<NA;k++)for(var i=0;i<NCH;i++)cells[k][i].setAttribute('visibility','hidden');
+    scanned=-1; step=0; setAngle(0); setBand(0);
+   }
+
+   function frame(ts){
+    if(state==='rotating'){
+     var p=(ts-rt0)/ROT_MS; if(p<0)p=0;
+     if(p>=1){setAngle(tgtDeg); beginSweep();}
+     else{setAngle(srcDeg+(tgtDeg-srcDeg)*ease(p));}
+    }else if(state==='scanning'){
+     var el=ts-st0; if(el<0)el=0;
+     var s=Math.floor(el/SAMPLE_MS);
+     if(s>=NCH){finishScan();}
+     else{
+      for(var j=0;j<s;j++){var i=chanOf(j);
+       cells[step][i].setAttribute('visibility','visible');
+       dots[i].setAttribute('visibility','visible');}
+      var ic=chanOf(s), t=tOf(ic);
+      var phase=el-s*SAMPLE_MS, on=phase<PULSE_ON;
+      setCarriage(t);
+      prog.setAttribute('x2',(CX+t).toFixed(2));
+      gB.setAttribute('visibility',on?'visible':'hidden');
+      cells[step][ic].setAttribute('visibility',on?'visible':'hidden');
+      if(on){
+       detFace.setAttribute('fill',gray(sino[step][ic]));
+       dots[ic].setAttribute('visibility','visible');
+       hiCell.setAttribute('x',(SG.x+ic*colW).toFixed(2));
+       hiCell.setAttribute('y',(SG.y+step*rowH).toFixed(2));
+       hiCell.setAttribute('visibility','visible');
+      }else{hiCell.setAttribute('visibility','hidden');}
+     }
+    }
+    if(state!=='idle'){requestAnimationFrame(frame);}else{rafActive=false;}
+   }
+   function startRaf(){if(!rafActive){rafActive=true;requestAnimationFrame(frame);}}
+
+   function advance(){
+    if(state==='scanning'){finishScan();return;}
+    if(state==='rotating'){setAngle(tgtDeg);beginSweep();finishScan();return;}
+    if(scanned<0){step=0;setAngle(0);beginSweep();return;}
+    if(scanned>=NA-1){resetAll();beginSweep();return;}
+    beginRotation();
+   }
+
+   // init
+   setAngle(0); setBand(0); setCarriage(-T);
+   gArr.setAttribute('transform','translate('+CX+','+(railY1-26)+') scale(1,1)');
+
+   var stage=D.getElementById('stage');
+   stage.addEventListener('click',advance);
+   window.addEventListener('keydown',function(ev){var kk=ev.key;if(kk===' '||kk==='Enter'||kk==='ArrowRight'||kk==='ArrowUp'||kk==='ArrowDown'){ev.preventDefault();advance();}});
+   // test hook (harmless for normal use)
+   stage.__ct={advance:advance,
+    getState:function(){return {state:state,step:step,scanned:scanned,dir:dir};},
+    setSampleMs:function(v){SAMPLE_MS=v;}};
+  })();
+  //]]>
+  </script>
+</svg>
+  </div>
+</div>
+</body>
+</html>
