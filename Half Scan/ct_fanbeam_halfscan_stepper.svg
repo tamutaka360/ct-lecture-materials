@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" id="ctroot" viewBox="0 0 1280 720" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" font-family="sans-serif">
+<style>
+ text{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;}
+ .btn{cursor:pointer;}
+ .btn:hover{opacity:.85;}
+ #ctroot{-webkit-user-select:none;user-select:none;}
+</style>
+<defs>
+ <clipPath id="clipB" clipPathUnits="userSpaceOnUse"><rect x="716" y="168" width="464" height="210"/></clipPath>
+ <clipPath id="clipA" clipPathUnits="userSpaceOnUse"><rect x="20" y="146" width="608" height="420"/></clipPath>
+ <pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+   <rect width="9" height="9" fill="#f08c00" opacity="0.12"/>
+   <line x1="0" y1="0" x2="0" y2="9" stroke="#e8590c" stroke-width="2.2" opacity="0.8"/>
+ </pattern>
+</defs>
+<script type="text/javascript"><![CDATA[
+(function(){
+ var NS="http://www.w3.org/2000/svg";
+ var svg=document.getElementById('ctroot');
+ function mk(t,a,p){var e=document.createElementNS(NS,t);if(a)for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+ function tx(a,s,p){var e=mk('text',a,p);e.textContent=s;return e;}
+ function clr(g){while(g.firstChild)g.removeChild(g.firstChild);}
+
+ var DEG=Math.PI/180, GM=30, ALPHA=60;
+ var GREEN='#2f9e44',GD='#1b6b34',GL='#a9e8b5',YEL='#ffd000',AMB='#f08c00',RED='#e03131',REDF='#ffa8a8',
+     INK='#1d2b22',MUT='#5c6b62',TEAL='#0c8599',BLUE='#1c7ed6',DGRY='#343a40',LGRY='#adb5bd';
+
+ // ---------- background ----------
+ mk('rect',{x:0,y:0,width:1280,height:720,fill:'#f5f8f5'},svg);
+
+ // ---------- title ----------
+ tx({x:30,y:36,'font-size':23,'font-weight':700,fill:INK},'CT ファンビームのハーフ再構成 — なぜ 180°＋α（ファン角）が必要か',svg);
+ tx({x:30,y:60,'font-size':14.5,fill:MUT},'平行ビームは 180° で完全。ファンビームは 1 投影が ±γm に広がるため、両端を γm ずつ余分に回す必要 → 180°＋α（α=2γm）',svg);
+
+ // ---------- panels ----------
+ function panel(x,w,title,sub,accent){
+   mk('rect',{x:x,y:84,width:w,height:482,rx:14,fill:'#ffffff',stroke:accent,'stroke-width':2.2},svg);
+   mk('rect',{x:x,y:84,width:6,height:482,rx:3,fill:accent},svg);
+   tx({x:x+22,y:116,'font-size':19,'font-weight':700,fill:accent},title,svg);
+   tx({x:x+22,y:137,'font-size':12.5,fill:MUT},sub,svg);
+   mk('line',{x1:x+20,y1:146,x2:x+w-20,y2:146,stroke:accent,'stroke-width':1,opacity:.5},svg);
+ }
+ panel(20,608,'1. 撮影ジオメトリ','点線源が軌道を回る／扇は中心線 ±γm に広がる',GREEN);
+ panel(648,612,'2. サイノグラム（データ）の被覆','横 θ=β+γ（線の向き）×縦 γ（扇内＝検出器ch）',AMB);
+
+ var gA=mk('g',{'clip-path':'url(#clipA)'},svg);
+ var gAlbl=mk('g',{},svg);
+
+ // ===== Panel A geometry =====
+ var OAx=322,OAy=350,Rs=196,Rdet=162,Rfov=78;
+ function rot(vx,vy,rad){var c=Math.cos(rad),s=Math.sin(rad);return [vx*c-vy*s,vx*s+vy*c];}
+ function uni(x,y){var m=Math.hypot(x,y)||1;return [x/m,y/m];}
+ function hit(Sx,Sy,dx,dy,R){var fx=Sx-OAx,fy=Sy-OAy;var b=2*(fx*dx+fy*dy);var c=fx*fx+fy*fy-R*R;var disc=b*b-4*c;var t=(-b+Math.sqrt(Math.max(0,disc)))/2;return [Sx+t*dx,Sy+t*dy];}
+ function orbPt(deg){return [OAx+Rs*Math.cos(deg*DEG),OAy-Rs*Math.sin(deg*DEG)];}
+
+ // static phantom
+ mk('circle',{cx:OAx,cy:OAy,r:Rfov,fill:'#eef1f3',stroke:LGRY,'stroke-width':1,'stroke-dasharray':'3 3'},svg);
+ mk('ellipse',{cx:OAx,cy:OAy,rx:54,ry:33,fill:'#dde2e6',stroke:'#c2c9cf','stroke-width':1},svg);
+ mk('ellipse',{cx:OAx-22,cy:OAy+2,rx:12,ry:17,fill:'#2b3138'},svg);
+ mk('ellipse',{cx:OAx+22,cy:OAy+2,rx:12,ry:17,fill:'#2b3138'},svg);
+ mk('circle',{cx:OAx,cy:OAy-16,r:6,fill:'#f8f9fa'},svg);
+
+ function fan(beta,op,ghost){
+   var S=orbPt(beta);
+   var cu=uni(OAx-S[0],OAy-S[1]);
+   var ep=rot(cu[0],cu[1],GM*DEG), em=rot(cu[0],cu[1],-GM*DEG);
+   var D0=hit(S[0],S[1],cu[0],cu[1],Rdet);
+   var Dp=hit(S[0],S[1],ep[0],ep[1],Rdet);
+   var Dm=hit(S[0],S[1],em[0],em[1],Rdet);
+   var col=ghost?'#9aa7b0':GREEN, accent=ghost?'#9aa7b0':BLUE, edge=ghost?'#9aa7b0':AMB;
+   // fan fill
+   mk('polygon',{points:S[0]+','+S[1]+' '+Dm[0]+','+Dm[1]+' '+Dp[0]+','+Dp[1],fill:GREEN,opacity:0.10*op},gA);
+   // intermediate rays
+   for(var g=-GM+10;g<=GM-10;g+=10){var d=rot(cu[0],cu[1],g*DEG);var H=hit(S[0],S[1],d[0],d[1],Rdet);
+     mk('line',{x1:S[0],y1:S[1],x2:H[0],y2:H[1],stroke:GREEN,'stroke-width':1,opacity:0.28*op},gA);}
+   // central ray
+   mk('line',{x1:S[0],y1:S[1],x2:D0[0],y2:D0[1],stroke:accent,'stroke-width':2.4,opacity:op},gA);
+   // edge rays
+   mk('line',{x1:S[0],y1:S[1],x2:Dp[0],y2:Dp[1],stroke:edge,'stroke-width':2.2,opacity:op},gA);
+   mk('line',{x1:S[0],y1:S[1],x2:Dm[0],y2:Dm[1],stroke:edge,'stroke-width':2.2,opacity:op},gA);
+   // detector arc
+   var cr=(Dm[0]-OAx)*(Dp[1]-OAy)-(Dm[1]-OAy)*(Dp[0]-OAx);
+   mk('path',{d:'M '+Dm[0].toFixed(1)+' '+Dm[1].toFixed(1)+' A '+Rdet+' '+Rdet+' 0 0 '+(cr>0?1:0)+' '+Dp[0].toFixed(1)+' '+Dp[1].toFixed(1),fill:'none',stroke:ghost?'#aeb6bd':DGRY,'stroke-width':6,'stroke-linecap':'round',opacity:op},gA);
+   // source
+   mk('circle',{cx:S[0],cy:S[1],r:7,fill:ghost?'#aeb6bd':RED,stroke:'#fff','stroke-width':1.5,opacity:op},gA);
+   if(!ghost){
+     // fan-angle arc near source
+     var a0=Math.atan2(em[1],em[0]),a1=Math.atan2(ep[1],ep[0]);
+     var Ae=[S[0]+34*Math.cos(a0),S[1]+34*Math.sin(a0)],Be=[S[0]+34*Math.cos(a1),S[1]+34*Math.sin(a1)];
+     mk('path',{d:'M '+Ae[0].toFixed(1)+' '+Ae[1].toFixed(1)+' A 34 34 0 0 '+(cr>0?1:0)+' '+Be[0].toFixed(1)+' '+Be[1].toFixed(1),fill:'none',stroke:AMB,'stroke-width':2},gA);
+     var so=uni(S[0]-OAx,S[1]-OAy);
+     tx({x:S[0]+so[0]*20,y:S[1]+so[1]*20+4,'font-size':12.5,'font-weight':700,fill:RED,'text-anchor':'middle'},'X線源',gAlbl);
+     var dm=uni((Dm[0]-OAx)+(Dp[0]-OAx),(Dm[1]-OAy)+(Dp[1]-OAy));
+     tx({x:OAx+dm[0]*(Rdet+18),y:OAy+dm[1]*(Rdet+18)+4,'font-size':12.5,'font-weight':700,fill:DGRY,'text-anchor':'middle'},'検出器',gAlbl);
+     tx({x:S[0]+cu[0]*52,y:S[1]+cu[1]*52,'font-size':12.5,'font-weight':700,fill:AMB,'text-anchor':'middle'},'α='+ALPHA+'°',gAlbl);
+   }
+ }
+
+ function drawA(p){
+   clr(gA);clr(gAlbl);
+   // orbit
+   mk('circle',{cx:OAx,cy:OAy,r:Rs,fill:'none',stroke:LGRY,'stroke-width':1.2,'stroke-dasharray':'4 5'},gA);
+   if(p.span>0.5){
+     var PL=orbPt(p.bL),PR=orbPt(p.bR);
+     mk('path',{d:'M '+PL[0].toFixed(1)+' '+PL[1].toFixed(1)+' A '+Rs+' '+Rs+' 0 '+(p.span>180?1:0)+' 0 '+PR[0].toFixed(1)+' '+PR[1].toFixed(1),fill:'none',stroke:GREEN,'stroke-width':5,'stroke-linecap':'round',opacity:.85},gA);
+   }
+   if(p.ghost) fan(p.bL,0.34,true);
+   fan(p.bR,1,false);
+   tx({x:36,y:556,'font-size':14,'font-weight':700,fill:GD},'走査角の合計 = '+Math.round(p.span)+'°',gAlbl);
+   tx({x:200,y:556,'font-size':12.5,fill:MUT},'（半ファン角 γm = '+GM+'°、α = 2γm = '+ALPHA+'°）',gAlbl);
+ }
+
+ // ===== Panel B sinogram =====
+ var gBfill=mk('g',{'clip-path':'url(#clipB)'},svg);
+ var gBgap=mk('g',{'clip-path':'url(#clipB)'},svg);
+ var gBline=mk('g',{'clip-path':'url(#clipB)'},svg);
+ var gBover=mk('g',{'clip-path':'url(#clipB)'},svg);
+ var gBlbl=mk('g',{},svg);
+ function Xb(th){return 716+(th+45)*1.7185;}
+ function Yb(g){return 168+(30-g)*3.5;}
+ var RL=Xb(0),RR=Xb(180),RT=Yb(30),RB=Yb(-30);
+
+ function pgPts(bL,bR){
+   return [[bL-GM,-GM],[bR-GM,-GM],[bR+GM,GM],[bL+GM,GM]]
+     .map(function(q){return Xb(q[0]).toFixed(1)+','+Yb(q[1]).toFixed(1);}).join(' ');
+ }
+ function tri(pts){return pts.map(function(q){return Xb(q[0]).toFixed(1)+','+Yb(q[1]).toFixed(1);}).join(' ');}
+
+ function drawB(p){
+   clr(gBfill);clr(gBgap);clr(gBline);clr(gBover);clr(gBlbl);
+   // covered parallelogram
+   if(p.span>0.5){
+     mk('polygon',{points:pgPts(p.bL,p.bR),fill:GL,stroke:GREEN,'stroke-width':1.4,'stroke-opacity':.7},gBfill);
+   }
+   // gaps (only from milestone)
+   if(p.gaps){
+     var L=[[0,-p.bL],[0,30],[30+p.bL,30]];
+     var R=[[180,180-p.bR],[180,-30],[p.bR-30,-30]];
+     if(30+p.bL>0.5) mk('polygon',{points:tri(L),fill:REDF,stroke:RED,'stroke-width':1.4},gBgap);
+     if(p.bR-30<179.5) mk('polygon',{points:tri(R),fill:REDF,stroke:RED,'stroke-width':1.4},gBgap);
+   }
+   // overlap wedges (summary) = parallelogram parts outside the needed rectangle
+   if(p.overlap){
+     mk('polygon',{points:tri([[-2*GM,-GM],[0,-GM],[0,GM]]),fill:'url(#hatch)',stroke:'#e8590c','stroke-width':1.2,'stroke-opacity':.6},gBover);
+     mk('polygon',{points:tri([[180,-GM],[180,GM],[180+2*GM,GM]]),fill:'url(#hatch)',stroke:'#e8590c','stroke-width':1.2,'stroke-opacity':.6},gBover);
+     tx({x:Xb(-22),y:Yb(-6),'font-size':11.5,'font-weight':700,fill:'#d9480f','text-anchor':'middle'},'重複',gBover);
+     tx({x:Xb(202),y:Yb(6),'font-size':11.5,'font-weight':700,fill:'#d9480f','text-anchor':'middle'},'重複',gBover);
+   }
+   // current fan lines (slanted)
+   p.cur.forEach(function(b){
+     mk('line',{x1:Xb(b-GM),y1:Yb(-GM),x2:Xb(b+GM),y2:Yb(GM),stroke:AMB,'stroke-width':3.4,'stroke-linecap':'round'},gBline);
+   });
+   // gamma=0 dashed
+   mk('line',{x1:RL,y1:Yb(0),x2:RR,y2:Yb(0),stroke:'#cdd3d8','stroke-width':1,'stroke-dasharray':'4 4'},gBlbl);
+   // needed rectangle outline
+   mk('rect',{x:RL,y:RT,width:RR-RL,height:RB-RT,fill:'none',stroke:TEAL,'stroke-width':2.2,'stroke-dasharray':'7 4'},gBlbl);
+   // axes ticks
+   [0,90,180].forEach(function(t){mk('line',{x1:Xb(t),y1:RB,x2:Xb(t),y2:RB+6,stroke:LGRY,'stroke-width':1},gBlbl);
+     tx({x:Xb(t),y:RB+20,'font-size':12,fill:MUT,'text-anchor':'middle'},t+'°',gBlbl);});
+   [['+γm',30],['0',0],['−γm',-30]].forEach(function(d){tx({x:RL-12,y:Yb(d[1])+4,'font-size':11.5,fill:MUT,'text-anchor':'end'},d[0],gBlbl);});
+   tx({x:Xb(180),y:RB+38,'font-size':12.5,fill:MUT,'text-anchor':'middle'},'線の向き θ = β + γ  →',gBlbl);
+   tx({x:RL-12,y:RT-12,'font-size':12,fill:MUT,'text-anchor':'start'},'γ（検出器ch）',gBlbl);
+   tx({x:(RL+RR)/2,y:RT-12,'font-size':12.5,'font-weight':700,fill:TEAL,'text-anchor':'middle'},'必要データ：θ 0°→180° の全域',gBlbl);
+   // legend
+   var lx=700,ly=420;
+   function leg(i,fill,stroke,dash,txt){var yy=ly+i*22;
+     mk('rect',{x:lx,y:yy-11,width:16,height:14,rx:2,fill:fill,stroke:stroke,'stroke-width':1.5,'stroke-dasharray':dash||'none'},gBlbl);
+     tx({x:lx+24,y:yy,'font-size':12.5,fill:INK},txt,gBlbl);}
+   leg(0,'none',TEAL,'5 3','必要データ（θ:0–180° × 全ch）');
+   leg(1,GL,GREEN,null,'取得済み（取得データの被覆）');
+   leg(2,REDF,RED,null,'欠損（未測定の隅）');
+   mk('line',{x1:lx+2,y1:ly+3*22-7,x2:lx+14,y2:ly+3*22-7,stroke:AMB,'stroke-width':3.4},gBlbl);
+   tx({x:lx+24,y:ly+3*22,'font-size':12.5,fill:INK},'現在の扇（1投影＝斜め線 θ=β+γ）',gBlbl);
+ }
+
+ // ===== state model =====
+ var NS_=10;
+ function params(s){
+   var p={bL:0,bR:0,cur:[],gaps:false,overlap:false,span:0,msg:''};
+   if(s===0){p.cur=[];p.msg='準備：平行ビームなら 180° で完全。ではファンビームは？　1 投影は中心線の ±γm に広がります。';return p;}
+   if(s>=1&&s<=7){p.bL=0;p.bR=(s-1)*30;p.span=p.bR;p.cur=[p.bR];
+     if(s===7){p.gaps=true;p.msg='中心線が 0°→180° を走査。…が θ=β+γ の傾きで、対角 2 か所（赤）が未測定のまま。';}
+     else if(s===1){p.msg='扇 1 つ＝サイノグラム上では「斜めの線」θ=β+γ。±γm の幅で複数方向に分散します。';}
+     else{p.msg='走査角 β = '+p.bR+'°。各投影が斜め線として加わり、平行四辺形に被覆が広がる。';}
+     return p;}
+   if(s===8){p.bL=-15;p.bR=195;p.span=p.bR-p.bL;p.cur=[p.bL,p.bR];p.gaps=true;p.ghost=true;
+     p.msg='両端へ γm/2 ずつ延長中（走査 '+p.span+'°）。隅の赤が縮む＝端の検出器chが埋まっていく。';return p;}
+   if(s===9){p.bL=-30;p.bR=210;p.span=p.bR-p.bL;p.cur=[p.bL,p.bR];p.gaps=false;p.ghost=true;
+     p.msg='180°＋α＝'+p.span+'° に到達。両端を γm ずつ延長して、必要な長方形を完全被覆。';return p;}
+   p.bL=-30;p.bR=210;p.span=240;p.cur=[];p.overlap=true;p.ghost=true;
+   p.msg='完成：必要データ＝180°＋ファン角(α=2γm)。はみ出した重複部（斜線）は Parker 重みで滑らかに調整。';
+   return p;
+ }
+
+ // ===== control strip =====
+ mk('line',{x1:20,y1:582,x2:1260,y2:582,stroke:'#dde3dd','stroke-width':1},svg);
+ var readout=tx({x:640,y:606,'font-size':15,'font-weight':700,fill:GD,'text-anchor':'middle'},'',svg);
+
+ // jump buttons
+ var jumps=[['準備',0],['1 投影',1],['180°到達',7],['＋α 延長',9],['完成',10]];
+ var jbtn=[];
+ jumps.forEach(function(j,i){var bx=232+i*128;
+   var g=mk('g',{'class':'btn'},svg);
+   var r=mk('rect',{x:bx,y:620,width:118,height:30,rx:8,fill:'#fff',stroke:GL,'stroke-width':1.5},g);
+   var t=tx({x:bx+59,y:640,'font-size':13,'font-weight':700,fill:GREEN,'text-anchor':'middle'},j[0],g);
+   (function(v){g.addEventListener('click',function(){setState(v);});})(j[1]);
+   jbtn.push({r:r,t:t,v:j[1]});
+ });
+
+ function ctlBtn(x,w,label,fill,stroke,fg){
+   var g=mk('g',{'class':'btn'},svg);
+   mk('rect',{x:x,y:662,width:w,height:42,rx:10,fill:fill,stroke:stroke,'stroke-width':2},g);
+   tx({x:x+w/2,y:689,'font-size':16,'font-weight':700,fill:fg,'text-anchor':'middle'},label,g);
+   return g;
+ }
+ var bPrev=ctlBtn(402,150,'◀ 戻る','#ffffff',GREEN,GREEN);
+ var bNext=ctlBtn(566,150,'進む ▶',GREEN,GD,'#ffffff');
+ var bReset=ctlBtn(730,120,'リセット','#ffffff',RED,RED);
+ bPrev.addEventListener('click',function(){setState(state-1);});
+ bNext.addEventListener('click',function(){setState(state+1);});
+ bReset.addEventListener('click',function(){setState(0);});
+ tx({x:640,y:715,'font-size':12.5,fill:MUT,'text-anchor':'middle'},'クリック ／ ←→・Space・Enter で前後 ／ 上のボタンで直接ジャンプ ／ r でリセット',svg);
+
+ // ===== state ctrl =====
+ var state=0;
+ function update(){
+   var p=params(state);
+   drawA(p);drawB(p);
+   readout.textContent=p.msg;
+   for(var i=0;i<jbtn.length;i++){var b=jbtn[i];
+     if(b.v===state){b.r.setAttribute('fill',YEL);b.r.setAttribute('stroke',AMB);b.t.setAttribute('fill',INK);}
+     else{b.r.setAttribute('fill','#fff');b.r.setAttribute('stroke',GL);b.t.setAttribute('fill',GREEN);}
+   }
+ }
+ function setState(s){state=Math.max(0,Math.min(NS_,s));update();}
+ window.addEventListener('keydown',function(e){
+   var k=e.key;
+   if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='Enter'){e.preventDefault();setState(state+1);}
+   else if(k==='ArrowLeft'||k==='ArrowUp'){e.preventDefault();setState(state-1);}
+   else if(k==='r'||k==='R'){e.preventDefault();setState(0);}
+ });
+ setState(0);
+})();
+]]></script>
+</svg>
