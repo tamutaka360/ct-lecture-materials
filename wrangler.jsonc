@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ct-lecture-materials",
+  "compatibility_date": "2026-06-24",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "CT_Scantype_RR"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
