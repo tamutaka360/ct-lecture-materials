@@ -121,7 +121,7 @@
 
    // labels: rotation + z axis
    mk('path',{d:'M '+(gx-24)+' 206 A 24 24 0 0 1 '+(gx+24)+' 206',fill:'none',stroke:GD,'stroke-width':3,'marker-end':'url(#ahR)'},gPhysLbl);
-   tx({x:gx,y:196,'font-size':12,'font-weight':700,fill:GD,'text-anchor':'middle'},'管球が回転',gPhysLbl);
+   tx({x:gx,y:170,'font-size':12,'font-weight':700,fill:GD,'text-anchor':'middle'},'管球が回転',gPhysLbl);
    var zaxY=PYc+150;
    mk('line',{x1:zX(0),y1:zaxY,x2:zX(3)+22,y2:zaxY,stroke:MUT,'stroke-width':1.4,'marker-end':'url(#ahT)'},gPhysLbl);
    [0,1,2,3].forEach(function(z){mk('line',{x1:zX(z),y1:zaxY-4,x2:zX(z),y2:zaxY+4,stroke:MUT,'stroke-width':1.2},gPhysLbl);
