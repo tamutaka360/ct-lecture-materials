@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MDCT 均等型検出器アレイ ステッパー</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+      background: #eef3f1;
+      color: #182620;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eef3f1; }
+    main {
+      width: min(1180px, 100vw);
+      margin: 0 auto;
+      padding: 14px 16px 22px;
+    }
+    .stage {
+      overflow: hidden;
+      border: 1px solid #cfddd8;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 14px 32px rgb(34 70 58 / 12%);
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #ffffff;
+      user-select: none;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 14px 14px;
+      border-top: 1px solid #dbe8e3;
+      background: #f7faf8;
+    }
+    .segmented {
+      display: flex;
+      gap: 0;
+      width: fit-content;
+      border: 1px solid #9db8ad;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    button {
+      appearance: none;
+      border: 0;
+      border-right: 1px solid #b7cbc3;
+      padding: 10px 15px;
+      background: #ffffff;
+      color: #235b46;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 760;
+      cursor: pointer;
+    }
+    button:last-child { border-right: 0; }
+    button:hover { background: #edf6f2; }
+    button:focus-visible {
+      outline: 3px solid #9fe0c4;
+      outline-offset: -3px;
+    }
+    button.active {
+      background: #236b55;
+      color: #ffffff;
+    }
+    .status {
+      min-width: 0;
+      color: #526b61;
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+    .status strong {
+      color: #183127;
+      font-size: 17px;
+    }
+    @media (max-width: 780px) {
+      .controls { grid-template-columns: 1fr; }
+      .segmented { width: 100%; }
+      button {
+        flex: 1 1 0;
+        padding-inline: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <section class="stage" aria-label="MDCT均等型検出器アレイのステッパー">
+    <svg id="diagram" viewBox="0 0 1280 760" role="img" aria-labelledby="svgTitle svgDesc">
+      <title id="svgTitle">MDCT均等型検出器アレイ</title>
+      <desc id="svgDesc">同じ幅の検出器素子を、設定スライス厚に応じて4つのDASへ束ねて読み出す。</desc>
+      <defs>
+        <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0 0 L10 5 L0 10 Z" fill="context-stroke"></path>
+        </marker>
+        <filter id="softShadow" x="-20%" y="-30%" width="140%" height="170%">
+          <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#234238" flood-opacity=".14"></feDropShadow>
+        </filter>
+        <linearGradient id="beamGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffe08a" stop-opacity=".5"></stop>
+          <stop offset=".7" stop-color="#f4a62a" stop-opacity=".24"></stop>
+          <stop offset="1" stop-color="#f4a62a" stop-opacity=".08"></stop>
+        </linearGradient>
+        <linearGradient id="leadGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#68737a"></stop>
+          <stop offset="1" stop-color="#303a40"></stop>
+        </linearGradient>
+      </defs>
+      <style>
+        text { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif; }
+        .title { fill: #182620; font-size: 27px; font-weight: 820; }
+        .subtitle { fill: #5a7168; font-size: 14px; font-weight: 640; }
+        .section { fill: #26362f; font-size: 17px; font-weight: 780; }
+        .small { fill: #61786e; font-size: 13px; font-weight: 640; }
+        .tiny { fill: #536b61; font-size: 11px; font-weight: 700; }
+        .detector { stroke: #ffffff; stroke-width: 2; transition: fill .34s ease, opacity .34s ease, stroke .34s ease; }
+        .detector-label { fill: #23352d; font-size: 9.8px; font-weight: 760; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+        .group-outline { fill: none; stroke-width: 3; stroke-linejoin: round; opacity: .9; }
+        .connect {
+          fill: none;
+          stroke-width: 3.5;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          marker-end: url(#arrowHead);
+          stroke-dasharray: 520;
+          stroke-dashoffset: 520;
+          animation: drawLine .52s ease forwards;
+        }
+        .junction { stroke: #ffffff; stroke-width: 2; }
+        .das { stroke-width: 2.4; filter: url(#softShadow); transition: fill .3s ease, stroke .3s ease; }
+        .das-label { fill: #16231d; font-size: 16px; font-weight: 820; text-anchor: middle; dominant-baseline: middle; }
+        .das-sub { fill: #41584f; font-size: 11px; font-weight: 720; text-anchor: middle; dominant-baseline: middle; }
+        .step-chip { fill: #eef5f2; stroke: #b8cdc4; stroke-width: 1.5; }
+        .step-chip.active { fill: #236b55; stroke: #18513f; }
+        .step-chip-text { fill: #476158; font-size: 13px; font-weight: 780; text-anchor: middle; dominant-baseline: middle; }
+        .step-chip-text.active { fill: #ffffff; }
+        .beam-edge { fill: none; stroke: #d88a00; stroke-width: 2.2; stroke-linecap: round; opacity: .72; }
+        .aperture-line { stroke: #f3c85f; stroke-width: 4; stroke-linecap: round; }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+        @keyframes pop {
+          0% { transform: translateY(0); }
+          45% { transform: translateY(-3px); }
+          100% { transform: translateY(0); }
+        }
+        .active-detector { animation: pop .34s ease; }
+      </style>
+
+      <rect width="1280" height="760" fill="#ffffff"></rect>
+      <rect x="22" y="22" width="1236" height="716" rx="18" fill="#f8fbf9" stroke="#e2ece7"></rect>
+      <text class="title" x="56" y="62">MDCT 均等型検出器アレイ</text>
+      <text id="leadText" class="subtitle" x="56" y="87">同じ幅の素子を16個並べ、1個・2個・3個・4個ずつ束ねて4つのDASへ読み出す。</text>
+
+      <g id="stepChips"></g>
+      <g id="beamLayer"></g>
+      <g id="collimatorLayer"></g>
+      <g id="detectorLayer"></g>
+      <g id="groupLayer"></g>
+      <g id="connectionLayer"></g>
+      <g id="dasLayer"></g>
+      <g id="labelLayer"></g>
+    </svg>
+    <div class="controls">
+      <div class="status" aria-live="polite">
+        <strong id="statusTitle">配列確認</strong><br>
+        <span id="statusBody">X線を入れる前に、1.25 mm幅の素子が16個等間隔に並ぶことを確認します。</span>
+      </div>
+      <div class="segmented" aria-label="スライス厚設定">
+        <button type="button" class="active" data-step="0">配列</button>
+        <button type="button" data-step="1">4×1.25</button>
+        <button type="button" data-step="2">4×2.5</button>
+        <button type="button" data-step="3">4×3.75</button>
+        <button type="button" data-step="4">4×5.0</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const detectorWidths = Array.from({ length: 16 }, () => 1.25);
+  const colors = [
+    { stroke: "#2364aa", fill: "#dcecff", text: "#12365f" },
+    { stroke: "#2b9348", fill: "#ddf4e4", text: "#174c2a" },
+    { stroke: "#d88919", fill: "#fff0cf", text: "#744707" },
+    { stroke: "#c44d58", fill: "#ffe0e3", text: "#77222a" }
+  ];
+  const neutral = { fill: "#d9e0dc", stroke: "#ffffff" };
+  const steps = [
+    {
+      name: "配列確認",
+      chip: "配列のみ",
+      body: "X線を入れる前に、1.25 mm幅の素子が16個等間隔に並ぶことを確認します。",
+      detail: "X線なし：均等な物理素子配列",
+      result: "1.25 mm × 16",
+      groups: null
+    },
+    {
+      name: "4 × 1.25 mm",
+      chip: "4×1.25 mm",
+      body: "中央4素子を1個ずつ、4つのDASへ接続します。",
+      detail: "中央4素子を個別に読み出す",
+      result: "1.25 / 1.25 / 1.25 / 1.25 mm",
+      groups: [[6], [7], [8], [9]]
+    },
+    {
+      name: "4 × 2.5 mm",
+      chip: "4×2.5 mm",
+      body: "中央8素子を2個ずつ束ね、4つの有効列を作ります。",
+      detail: "2素子ずつ合算",
+      result: "1.25+1.25 / 1.25+1.25 / 1.25+1.25 / 1.25+1.25 mm",
+      groups: [[4, 5], [6, 7], [8, 9], [10, 11]]
+    },
+    {
+      name: "4 × 3.75 mm",
+      chip: "4×3.75 mm",
+      body: "中央12素子を3個ずつ束ね、4つの有効列を作ります。",
+      detail: "3素子ずつ合算",
+      result: "1.25×3 / 1.25×3 / 1.25×3 / 1.25×3 mm",
+      groups: [[2, 3, 4], [5, 6, 7], [8, 9, 10], [11, 12, 13]]
+    },
+    {
+      name: "4 × 5.0 mm",
+      chip: "4×5.0 mm",
+      body: "全16素子を4個ずつ束ね、広いスライス厚で4列収集します。",
+      detail: "4素子ずつ合算",
+      result: "1.25×4 / 1.25×4 / 1.25×4 / 1.25×4 mm",
+      groups: [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
+    }
+  ];
+
+  const beamLayer = document.getElementById("beamLayer");
+  const collimatorLayer = document.getElementById("collimatorLayer");
+  const detectorLayer = document.getElementById("detectorLayer");
+  const groupLayer = document.getElementById("groupLayer");
+  const connectionLayer = document.getElementById("connectionLayer");
+  const dasLayer = document.getElementById("dasLayer");
+  const labelLayer = document.getElementById("labelLayer");
+  const stepChips = document.getElementById("stepChips");
+  const statusTitle = document.getElementById("statusTitle");
+  const statusBody = document.getElementById("statusBody");
+  const buttons = Array.from(document.querySelectorAll("button[data-step]"));
+
+  const elementW = 35;
+  const arrayW = elementW * detectorWidths.length;
+  const arrayX = 360;
+  const arrayCenter = arrayX + arrayW / 2;
+  const detectorY = 342;
+  const detectorH = 76;
+  const source = { x: arrayCenter, y: 116 };
+  const collimator = { y: 202, h: 48, left: arrayX - 54, right: arrayX + arrayW + 54 };
+  const dasY = 608;
+  const dasW = 150;
+  const dasH = 70;
+  const dasGap = 28;
+  const dasStartX = arrayCenter - (dasW * 4 + dasGap * 3) / 2;
+  const detectorRects = detectorWidths.map((width, index) => {
+    const x = arrayX + index * elementW;
+    return { index, width, x, w: elementW, cx: x + elementW / 2 };
+  });
+
+  function el(name, attrs = {}, parent = null) {
+    const node = document.createElementNS(SVG_NS, name);
+    Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  function tx(attrs, text, parent) {
+    const node = el("text", attrs, parent);
+    node.textContent = text;
+    return node;
+  }
+
+  function clear(node) {
+    node.replaceChildren();
+  }
+
+  function formatMm(value) {
+    if (Number.isInteger(value)) return value.toFixed(1);
+    return Number.isInteger(value * 10) ? value.toFixed(1) : value.toFixed(2);
+  }
+
+  function groupBounds(group) {
+    const first = detectorRects[group[0]];
+    const last = detectorRects[group[group.length - 1]];
+    return {
+      x: first.x,
+      w: last.x + last.w - first.x,
+      cx: (first.x + last.x + last.w) / 2
+    };
+  }
+
+  function activeRange(step) {
+    const flat = step.groups.flat();
+    const min = Math.min(...flat);
+    const max = Math.max(...flat);
+    return {
+      x1: detectorRects[min].x,
+      x2: detectorRects[max].x + detectorRects[max].w
+    };
+  }
+
+  function drawStepChips(activeIndex) {
+    clear(stepChips);
+    steps.forEach((step, index) => {
+      const x = 660 + index * 108;
+      const active = index === activeIndex;
+      const chip = el("g", { tabindex: "0", role: "button", "aria-label": step.name }, stepChips);
+      el("rect", {
+        class: `step-chip${active ? " active" : ""}`,
+        x,
+        y: 42,
+        width: 96,
+        height: 38,
+        rx: 9
+      }, chip);
+      tx({
+        class: `step-chip-text${active ? " active" : ""}`,
+        x: x + 48,
+        y: 62
+      }, step.chip, chip);
+      chip.addEventListener("click", () => render(index));
+      chip.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          render(index);
+        }
+      });
+    });
+  }
+
+  function drawBeam(step) {
+    clear(beamLayer);
+    clear(collimatorLayer);
+    if (!step.groups) {
+      el("circle", {
+        cx: source.x,
+        cy: source.y,
+        r: 17,
+        fill: "#d6ddd9",
+        stroke: "#7c8b84",
+        "stroke-width": 3
+      }, beamLayer);
+      tx({ x: source.x, y: source.y - 31, class: "small", "text-anchor": "middle" }, "X線焦点（OFF）", beamLayer);
+      el("rect", {
+        x: collimator.left,
+        y: collimator.y,
+        width: collimator.right - collimator.left,
+        height: collimator.h,
+        rx: 5,
+        fill: "url(#leadGrad)"
+      }, collimatorLayer);
+      el("line", {
+        x1: arrayCenter,
+        y1: collimator.y + 7,
+        x2: arrayCenter,
+        y2: collimator.y + collimator.h - 7,
+        stroke: "#f3c85f",
+        "stroke-width": 2.4,
+        "stroke-linecap": "round",
+        opacity: ".8"
+      }, collimatorLayer);
+      tx({ x: arrayCenter, y: collimator.y - 14, class: "section", "text-anchor": "middle" }, "コリメータ", collimatorLayer);
+      return;
+    }
+    const range = activeRange(step);
+    const activeW = range.x2 - range.x1;
+    const apertureW = activeW * 0.62;
+    const apertureL = arrayCenter - apertureW / 2;
+    const apertureR = arrayCenter + apertureW / 2;
+    const lowerY = detectorY - 2;
+    const apertureY = collimator.y + collimator.h;
+
+    el("path", {
+      d: `M ${source.x} ${source.y} L ${collimator.left} ${collimator.y + 6} L ${collimator.right} ${collimator.y + 6} Z`,
+      fill: "#ffe19a",
+      opacity: ".18"
+    }, beamLayer);
+    el("path", {
+      d: `M ${apertureL} ${apertureY} L ${apertureR} ${apertureY} L ${range.x2} ${lowerY} L ${range.x1} ${lowerY} Z`,
+      fill: "url(#beamGrad)"
+    }, beamLayer);
+    el("path", { class: "beam-edge", d: `M ${apertureL} ${apertureY} L ${range.x1} ${lowerY}` }, beamLayer);
+    el("path", { class: "beam-edge", d: `M ${apertureR} ${apertureY} L ${range.x2} ${lowerY}` }, beamLayer);
+    el("circle", {
+      cx: source.x,
+      cy: source.y,
+      r: 17,
+      fill: "#f3c14d",
+      stroke: "#b77a00",
+      "stroke-width": 3
+    }, beamLayer);
+    tx({ x: source.x, y: source.y - 31, class: "small", "text-anchor": "middle" }, "X線焦点", beamLayer);
+
+    el("rect", {
+      x: collimator.left,
+      y: collimator.y,
+      width: Math.max(0, apertureL - collimator.left),
+      height: collimator.h,
+      rx: 5,
+      fill: "url(#leadGrad)"
+    }, collimatorLayer);
+    el("rect", {
+      x: apertureR,
+      y: collimator.y,
+      width: Math.max(0, collimator.right - apertureR),
+      height: collimator.h,
+      rx: 5,
+      fill: "url(#leadGrad)"
+    }, collimatorLayer);
+    el("line", {
+      class: "aperture-line",
+      x1: apertureL,
+      y1: collimator.y + collimator.h / 2,
+      x2: apertureR,
+      y2: collimator.y + collimator.h / 2
+    }, collimatorLayer);
+    tx({ x: arrayCenter, y: collimator.y - 14, class: "section", "text-anchor": "middle" }, "コリメータ", collimatorLayer);
+  }
+
+  function drawDetectors(step) {
+    clear(detectorLayer);
+    const channelByDetector = new Map();
+    if (step.groups) step.groups.forEach((group, channelIndex) => {
+      group.forEach((detectorIndex) => channelByDetector.set(detectorIndex, channelIndex));
+    });
+
+    detectorRects.forEach((rect) => {
+      const channel = channelByDetector.get(rect.index);
+      const active = Number.isInteger(channel);
+      const arrayOnly = !step.groups;
+      const palette = active ? colors[channel] : neutral;
+      const group = el("g", { class: active ? "active-detector" : "" }, detectorLayer);
+      el("rect", {
+        class: "detector",
+        x: rect.x,
+        y: detectorY,
+        width: rect.w,
+        height: detectorH,
+        rx: 4,
+        fill: palette.fill,
+        stroke: active ? palette.stroke : arrayOnly ? "#b9c7c0" : neutral.stroke,
+        opacity: active || arrayOnly ? 1 : .5
+      }, group);
+      tx({
+        class: "detector-label",
+        x: rect.cx,
+        y: detectorY + detectorH / 2 - 4,
+        fill: active ? palette.text : arrayOnly ? "#26362f" : "#68766f"
+      }, "1.25", group);
+      tx({
+        class: "tiny",
+        x: rect.cx,
+        y: detectorY + detectorH / 2 + 12,
+        "text-anchor": "middle",
+        fill: active ? palette.text : arrayOnly ? "#41584f" : "#74827b"
+      }, "mm", group);
+    });
+
+    el("line", {
+      x1: arrayX,
+      y1: detectorY + detectorH + 13,
+      x2: arrayX + arrayW,
+      y2: detectorY + detectorH + 13,
+      stroke: "#8ba39a",
+      "stroke-width": 1.5
+    }, detectorLayer);
+    tx({ x: arrayX, y: detectorY + detectorH + 35, class: "tiny", "text-anchor": "start" }, "体軸方向 z", detectorLayer);
+  }
+
+  function drawGroups(step) {
+    clear(groupLayer);
+    if (!step.groups) return;
+    step.groups.forEach((group, channelIndex) => {
+      const bounds = groupBounds(group);
+      const palette = colors[channelIndex];
+      el("rect", {
+        class: "group-outline",
+        x: bounds.x + 3,
+        y: detectorY + 4,
+        width: bounds.w - 6,
+        height: detectorH - 8,
+        rx: 7,
+        stroke: palette.stroke
+      }, groupLayer);
+    });
+  }
+
+  function drawDas(step) {
+    clear(dasLayer);
+    tx({ x: arrayCenter, y: dasY - 34, class: "section", "text-anchor": "middle" }, "DAS（読み出しは常に4ch）", dasLayer);
+    if (!step.groups) {
+      for (let channelIndex = 0; channelIndex < 4; channelIndex += 1) {
+        const x = dasStartX + channelIndex * (dasW + dasGap);
+        el("rect", {
+          class: "das",
+          x,
+          y: dasY,
+          width: dasW,
+          height: dasH,
+          rx: 8,
+          fill: "#eef3f0",
+          stroke: "#b7c9c1"
+        }, dasLayer);
+        tx({ class: "das-label", x: x + dasW / 2, y: dasY + 25 }, `DAS ch${channelIndex + 1}`, dasLayer);
+        tx({ class: "das-sub", x: x + dasW / 2, y: dasY + 49 }, "未接続", dasLayer);
+      }
+      return;
+    }
+    step.groups.forEach((group, channelIndex) => {
+      const palette = colors[channelIndex];
+      const x = dasStartX + channelIndex * (dasW + dasGap);
+      const sum = group.reduce((total, detectorIndex) => total + detectorRects[detectorIndex].width, 0);
+      const groupText = `${group.length} × 1.25 = ${formatMm(sum)} mm`;
+      el("rect", {
+        class: "das",
+        x,
+        y: dasY,
+        width: dasW,
+        height: dasH,
+        rx: 8,
+        fill: palette.fill,
+        stroke: palette.stroke
+      }, dasLayer);
+      tx({ class: "das-label", x: x + dasW / 2, y: dasY + 25 }, `DAS ch${channelIndex + 1}`, dasLayer);
+      tx({ class: "das-sub", x: x + dasW / 2, y: dasY + 49 }, groupText, dasLayer);
+    });
+  }
+
+  function connectionPath(x1, y1, x2, y2) {
+    const midY = y1 + (y2 - y1) * .48;
+    return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+  }
+
+  function drawConnections(step) {
+    clear(connectionLayer);
+    if (!step.groups) return;
+    step.groups.forEach((group, channelIndex) => {
+      const palette = colors[channelIndex];
+      const dasX = dasStartX + channelIndex * (dasW + dasGap) + dasW / 2;
+      const dasTop = dasY - 4;
+      const bounds = groupBounds(group);
+      const nodeY = detectorY + detectorH + 88;
+      el("circle", {
+        class: "junction",
+        cx: bounds.cx,
+        cy: nodeY,
+        r: 5,
+        fill: palette.stroke
+      }, connectionLayer);
+      group.forEach((detectorIndex) => {
+        const rect = detectorRects[detectorIndex];
+        el("path", {
+          class: "connect",
+          d: connectionPath(rect.cx, detectorY + detectorH + 4, bounds.cx, nodeY),
+          stroke: palette.stroke,
+          "marker-end": "none",
+          opacity: group.length > 1 ? .82 : .5
+        }, connectionLayer);
+      });
+      el("path", {
+        class: "connect",
+        d: connectionPath(bounds.cx, nodeY + 2, dasX, dasTop),
+        stroke: palette.stroke
+      }, connectionLayer);
+    });
+  }
+
+  function drawLabels(step) {
+    clear(labelLayer);
+    el("rect", {
+      x: 64,
+      y: 116,
+      width: 286,
+      height: 82,
+      rx: 10,
+      fill: "#ffffff",
+      stroke: "#d8e5df",
+      "stroke-width": 1.5
+    }, labelLayer);
+    tx({ x: 84, y: 146, fill: "#1c3328", "font-size": 22, "font-weight": 850 }, step.name, labelLayer);
+    tx({ x: 84, y: 171, class: "small" }, step.detail, labelLayer);
+
+    el("rect", {
+      x: 898,
+      y: 116,
+      width: 300,
+      height: 82,
+      rx: 10,
+      fill: "#ffffff",
+      stroke: "#d8e5df",
+      "stroke-width": 1.5
+    }, labelLayer);
+    tx({ x: 918, y: 144, fill: "#1c3328", "font-size": 15, "font-weight": 820 }, "有効検出器列", labelLayer);
+    tx({ x: 918, y: 170, fill: "#526b61", "font-size": 13, "font-weight": 700 }, step.result, labelLayer);
+  }
+
+  function render(index) {
+    const step = steps[index];
+    drawStepChips(index);
+    drawBeam(step);
+    drawDetectors(step);
+    drawGroups(step);
+    drawConnections(step);
+    drawDas(step);
+    drawLabels(step);
+    statusTitle.textContent = step.name;
+    statusBody.textContent = step.body;
+    buttons.forEach((button) => {
+      button.classList.toggle("active", Number(button.dataset.step) === index);
+    });
+  }
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => render(Number(button.dataset.step)));
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const activeIndex = buttons.findIndex((button) => button.classList.contains("active"));
+    if (event.key === "ArrowRight") render(Math.min(steps.length - 1, activeIndex + 1));
+    if (event.key === "ArrowLeft") render(Math.max(0, activeIndex - 1));
+  });
+
+  render(0);
+})();
+</script>
+</body>
+</html>
