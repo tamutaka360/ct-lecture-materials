@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>4列MDCT ピッチ0.75 — 物理ビューと展開図で見る z 補間</title>
+<style>
+ html,body{margin:0;padding:0;background:#eef2ee;
+   font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;}
+ .wrap{max-width:1180px;margin:0 auto;padding:14px 16px 24px;}
+ .hint{font-size:13.5px;color:#33453a;text-align:center;margin:4px 0 10px;}
+ .hint b{color:#1b6b34;}
+ .stage{background:#f5f8f5;border:1px solid #d6e0d6;border-radius:14px;
+   box-shadow:0 6px 22px rgba(30,60,40,.10);overflow:hidden;}
+ .stage svg{width:100%;height:auto;display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="hint"><b>左＝物理ビュー</b>、<b>右＝展開図</b>。補間点は、使った2つの検出器列の<b>混合色</b>で表示します。</div>
+ <div class="stage">
+<svg xmlns="http://www.w3.org/2000/svg" id="ctroot" viewBox="0 0 1280 720" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" font-family="sans-serif">
+<style>
+ text{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;}
+ .btn{cursor:pointer;}
+ .btn:hover{opacity:.86;}
+ #ctroot{-webkit-user-select:none;user-select:none;}
+</style>
+<defs>
+ <marker id="ahA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#343a40"/></marker>
+ <marker id="ahT" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#5c6b62"/></marker>
+ <marker id="ahG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#1b6b34"/></marker>
+ <clipPath id="physHelixClip"><rect x="84" y="170" width="512" height="304"/></clipPath>
+ <clipPath id="diagClip"><rect x="706" y="204" width="496" height="254"/></clipPath>
+</defs>
+<script type="text/javascript"><![CDATA[
+(function(){
+ var NS="http://www.w3.org/2000/svg";
+ var svg=document.getElementById('ctroot');
+ var defs=svg.querySelector('defs');
+ function mk(t,a,p){var e=document.createElementNS(NS,t);if(a)for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+ function tx(a,s,p){var e=mk('text',a,p);e.textContent=s;return e;}
+ function clr(g){while(g.firstChild)g.removeChild(g.firstChild);}
+ function hexToRgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+ function rgbToHex(r,g,b){return '#'+[r,g,b].map(function(v){v=Math.round(v);var s=v.toString(16);return s.length===1?'0'+s:s;}).join('');}
+ function blendColor(c1,c2,w1,w2){var a=hexToRgb(c1),b=hexToRgb(c2),t=w1+w2;if(t===0){w1=.5;w2=.5;t=1;}return rgbToHex((a[0]*w1+b[0]*w2)/t,(a[1]*w1+b[1]*w2)/t,(a[2]*w1+b[2]*w2)/t);}
+ function mixColor(c1,c2){return blendColor(c1,c2,.5,.5);}
+ function fmt(v,n){return Number(v).toFixed(n==null?2:n);}
+
+ var GREEN='#2f9e44',GD='#1b6b34',GL='#a9e8b5',YEL='#ffd43b',
+     AMB='#f08c00',ADK='#a55500',RED='#e03131',BLU='#1c7ed6',
+     INK='#1d2b22',MUT='#5c6b62',DGRY='#343a40';
+ var ROWC=['#f2a20d','#d6336c','#1c7ed6','#2f9e44'];
+ var ROWN=['列1 橙','列2 赤','列3 青','列4 緑'];
+ var ROWCOLORN=['橙','赤','青','緑'];
+ var FE=3, ROW0=0.5, ZMIN=3, ZMAX=9, AMIN=0, AMAX=360;
+ var zR=6.00, SAMPLE_ANGLES=[0,90,180,270,360];
+
+ mk('rect',{x:0,y:0,width:1280,height:720,fill:'#f5f8f5'},svg);
+ tx({x:30,y:36,'font-size':23,'font-weight':700,fill:INK},'CT 画像再構成：4列MDCT ピッチ0.75 — 物理ビューと展開図で見る z 補間',svg);
+ tx({x:30,y:60,'font-size':14,fill:MUT},'送り3d/回転では、実データと対向データがd/2間隔に並ぶ。目標断面 z_R の投影値を、前後2点の線形補間で作る。',svg);
+
+ function panel(x,w,title,sub,accent){
+   mk('rect',{x:x,y:84,width:w,height:482,rx:14,fill:'#ffffff',stroke:accent,'stroke-width':2.2},svg);
+   mk('rect',{x:x,y:84,width:6,height:482,rx:3,fill:accent},svg);
+   tx({x:x+22,y:116,'font-size':19,'font-weight':700,fill:accent},title,svg);
+   tx({x:x+22,y:137,'font-size':12.5,fill:MUT},sub,svg);
+   mk('line',{x1:x+20,y1:146,x2:x+w-20,y2:146,stroke:accent,'stroke-width':1,opacity:.5},svg);
+ }
+ panel(20,608,'1. 物理ビュー','z=3〜9に絞って、4列検出器のデータが z_R を挟む様子を見る',GREEN);
+ panel(648,612,'2. 展開図（ピッチ0.75）','横軸＝z（3〜9）、縦軸＝投影角 α。補間データは使った列色の混合色',AMB);
+
+ var gPhysBack=mk('g',{'clip-path':'url(#physHelixClip)'},svg),gPhysBody=mk('g',{},svg),gPhysFront=mk('g',{'clip-path':'url(#physHelixClip)'},svg),
+     gPhysHi=mk('g',{},svg),gDiagGrid=mk('g',{},svg),gDiagData=mk('g',{'clip-path':'url(#diagClip)'},svg),
+     gDiagBand=mk('g',{'clip-path':'url(#diagClip)'},svg),
+     gDiagHi=mk('g',{},svg),gDiagLbl=mk('g',{},svg),gReadout=mk('g',{},svg);
+
+ var DEG=Math.PI/180, PYc=350, RX=28, RY=105;
+ function zX(z){return 105+(z-ZMIN)/(ZMAX-ZMIN)*455;}
+ function pointAt(z,phd){var ph=phd*DEG;return [zX(z)+RX*Math.sin(ph), PYc-RY*Math.cos(ph)];}
+ function rowZ(row,beta){return row+ROW0+FE*beta/360;}
+
+ function emitHelix(row,t0,t1){
+   var z0=rowZ(row,t0),z1=rowZ(row,t1);
+   if(Math.max(z0,z1)<ZMIN || Math.min(z0,z1)>ZMAX)return;
+   var A=pointAt(z0,t0),B=pointAt(z1,t1);
+   var front=Math.sin(((t0+t1)/2)*DEG)>=0;
+   mk('line',{x1:A[0].toFixed(1),y1:A[1].toFixed(1),x2:B[0].toFixed(1),y2:B[1].toFixed(1),
+     stroke:ROWC[row],'stroke-width':front?2.5:1.8,'stroke-opacity':front?0.65:0.22,'stroke-linecap':'round'},
+     front?gPhysFront:gPhysBack);
+ }
+
+ function detectorLegend(g,x,y){
+   for(var i=0;i<4;i++){
+     mk('rect',{x:x+i*58,y:y,width:28,height:12,rx:4,fill:ROWC[i],stroke:'#495057','stroke-width':1},g);
+     tx({x:x+i*58+14,y:y+29,'font-size':10.5,fill:ROWC[i],'font-weight':700,'text-anchor':'middle'},'列'+(i+1),g);
+   }
+ }
+
+ function drawFanBeam(z,angle,color,label,opts){
+   opts=opts||{};
+   var spread=opts.spread||32;
+   var src=pointAt(z,angle);
+   var detC=pointAt(z,angle+180);
+   var e1=pointAt(z,angle+180-spread);
+   var e2=pointAt(z,angle+180+spread);
+   mk('polygon',{points:src[0].toFixed(1)+','+src[1].toFixed(1)+' '+e1[0].toFixed(1)+','+e1[1].toFixed(1)+' '+e2[0].toFixed(1)+','+e2[1].toFixed(1),
+     fill:color,opacity:opts.fillOpacity||0.14,stroke:color,'stroke-width':1.2,'stroke-opacity':0.45},gPhysHi);
+   mk('path',{d:'M '+e1[0].toFixed(1)+' '+e1[1].toFixed(1)+' Q '+detC[0].toFixed(1)+' '+detC[1].toFixed(1)+' '+e2[0].toFixed(1)+' '+e2[1].toFixed(1),
+     fill:'none',stroke:color,'stroke-width':3.2,'stroke-linecap':'round',opacity:0.9},gPhysHi);
+   mk('line',{x1:src[0].toFixed(1),y1:src[1].toFixed(1),x2:detC[0].toFixed(1),y2:detC[1].toFixed(1),
+     stroke:color,'stroke-width':opts.centerWidth||2.2,'stroke-dasharray':opts.dash||'',opacity:0.9},gPhysHi);
+   mk('circle',{cx:src[0],cy:src[1],r:6.5,fill:color,stroke:'#fff','stroke-width':2},gPhysHi);
+   mk('circle',{cx:detC[0],cy:detC[1],r:4.5,fill:'#fff',stroke:color,'stroke-width':2},gPhysHi);
+   if(label){
+     var dx=opts.dx==null?12:opts.dx, dy=opts.dy==null?-12:opts.dy, anchor=opts.anchor||'start';
+     tx({x:src[0]+dx,y:src[1]+dy,'font-size':11.5,'font-weight':700,fill:color,'text-anchor':anchor,
+       stroke:'#fff','stroke-width':3,'paint-order':'stroke'},label,gPhysHi);
+   }
+ }
+
+ function drawPhysical(p){
+   clr(gPhysBack);clr(gPhysBody);clr(gPhysFront);clr(gPhysHi);
+   mk('line',{x1:78,y1:PYc,x2:596,y2:PYc,stroke:'#c5ccd4','stroke-width':1.5,'stroke-dasharray':'6 6'},gPhysBody);
+   mk('rect',{x:88,y:PYc+34,width:504,height:18,rx:9,fill:'#2b3340'},gPhysBody);
+   mk('rect',{x:100,y:PYc+28,width:480,height:10,rx:5,fill:'#495a73'},gPhysBody);
+   mk('rect',{x:104,y:PYc-20,width:456,height:40,rx:20,fill:'#dbe5f3',stroke:'#9bb0d0','stroke-width':1.5},gPhysBody);
+   tx({x:120,y:PYc-28,'font-size':11.5,'font-weight':700,fill:'#6f86ad'},'頭側',gPhysBody);
+   tx({x:566,y:PYc-28,'font-size':11.5,'font-weight':700,fill:'#6f86ad','text-anchor':'end'},'足側',gPhysBody);
+
+   for(var r=0;r<4;r++)for(var t=0;t<1080;t+=8)emitHelix(r,t,t+8);
+
+   var gx=zX(zR);
+   mk('ellipse',{cx:gx,cy:PYc,rx:38,ry:122,fill:GREEN,opacity:0.10,stroke:GREEN,'stroke-width':1.6,'stroke-opacity':0.28},gPhysHi);
+   mk('line',{x1:gx,y1:PYc-RY-22,x2:gx,y2:PYc+RY+12,stroke:RED,'stroke-width':2,'stroke-dasharray':'6 5'},gPhysHi);
+   tx({x:gx,y:PYc-RY-30,'font-size':12.5,'font-weight':700,fill:RED,'text-anchor':'middle'},'再構成面 z_R='+fmt(zR,1),gPhysHi);
+   tx({x:gx+46,y:PYc-RY-4,'font-size':12.5,'font-weight':700,fill:GD,
+     stroke:'#fff','stroke-width':3,'paint-order':'stroke'},'目的のスライス面',gPhysHi);
+
+   if(p.alpha!=null){
+     var pp=pairFor(p.alpha), lo=pp.lo, hi=pp.hi;
+     if(pp.exact){
+       drawFanBeam(lo.z,fanAngleFor(lo,p.alpha),ROWC[lo.row],'使用：'+sampleLabel(lo)+'（z_R上・係数1）',{dx:-14,dy:-18,anchor:'end',dash:lo.type==='対向'?'5 4':'',fillOpacity:0.11});
+       if(p.showCreated)
+         drawFanBeam(zR,p.alpha,pp.color,'補正ビュー α='+p.alpha+'°（そのまま採用）',{dx:18,dy:42,anchor:'start',dash:'3 3',fillOpacity:0.17,centerWidth:3});
+     }else{
+       drawFanBeam(lo.z,fanAngleFor(lo,p.alpha),ROWC[lo.row],'使用：'+sampleLabel(lo),{dx:-14,dy:-18,anchor:'end',dash:lo.type==='対向'?'5 4':'',fillOpacity:0.11});
+       drawFanBeam(hi.z,fanAngleFor(hi,p.alpha),ROWC[hi.row],'使用：'+sampleLabel(hi),{dx:16,dy:22,anchor:'start',dash:hi.type==='対向'?'5 4':'',fillOpacity:0.11});
+       if(p.showCreated)
+         drawFanBeam(zR,p.alpha,pp.color,'補正ビュー α='+p.alpha+'°',{dx:18,dy:42,anchor:'start',dash:'3 3',fillOpacity:0.17,centerWidth:3});
+     }
+   }
+
+   var zaxY=PYc+155;
+   mk('line',{x1:zX(ZMIN),y1:zaxY,x2:zX(ZMAX)+20,y2:zaxY,stroke:MUT,'stroke-width':1.4,'marker-end':'url(#ahT)'},gPhysHi);
+   for(var z=ZMIN;z<=ZMAX;z+=1){
+     mk('line',{x1:zX(z),y1:zaxY-4,x2:zX(z),y2:zaxY+4,stroke:MUT,'stroke-width':1.1},gPhysHi);
+     tx({x:zX(z),y:zaxY+18,'font-size':11.5,fill:MUT,'text-anchor':'middle'},z,gPhysHi);
+   }
+   tx({x:zX(ZMAX)+28,y:zaxY+4,'font-size':12.5,fill:MUT},'z（d）',gPhysHi);
+   detectorLegend(gPhysHi,392,156);
+ }
+
+ var dx0=706,dx1=1202,dy0=204,dy1=458;
+ function Xz(z){return dx0+(z-ZMIN)/(ZMAX-ZMIN)*(dx1-dx0);}
+ function Ya(a){return dy0+(a-AMIN)/(AMAX-AMIN)*(dy1-dy0);}
+ function lineStartReal(n,k){return k+ROW0+FE*n;}
+ function lineStartOpp(n,k){return k+ROW0+FE*n+FE/2;}
+ function zAt(start,a){return start+FE*a/360;}
+ function allSamples(alpha){
+   var out=[];
+   // 列4(回転n)と列1(回転n+1)は同一z線に重なるため、同zは後発(列1橙・上描き)で1本化する
+   function put(z,row,type){
+     if(z<ZMIN||z>ZMAX)return;
+     for(var i=0;i<out.length;i++)
+       if(out[i].type===type&&Math.abs(out[i].z-z)<0.0001){out[i]={z:z,row:row,type:type};return;}
+     out.push({z:z,row:row,type:type});
+   }
+   for(var n=0;n<5;n++)for(var k=0;k<4;k++){
+     put(zAt(lineStartReal(n,k),alpha),k,'実');
+     put(zAt(lineStartOpp(n,k),alpha),k,'対向');
+   }
+   out.sort(function(a,b){return a.z-b.z;});
+   return out;
+ }
+ function sampleLabel(s){return '列'+(s.row+1)+' '+ROWCOLORN[s.row]+'・'+(s.type==='実'?'実':'対向');}
+ function fanAngleFor(s,alpha){return s.type==='実'?alpha:alpha+180;}
+ function sampleValue(s,alpha){return Math.round(720+s.row*38+(s.type==='実'?42:0)+alpha/5+s.z*4);}
+ function pairFor(alpha){
+   var s=allSamples(alpha),lo=null,hi=null,exact=null;
+   for(var i=0;i<s.length;i++){
+     if(Math.abs(s[i].z-zR)<0.0001){exact=s[i];break;}
+     if(s[i].z<zR)lo=s[i];
+     if(s[i].z>zR){hi=s[i];break;}
+   }
+   if(exact){
+     // データがちょうどz_R上にある角度（60°ごと）：補間不要・係数1.00
+     exact.value=sampleValue(exact,alpha);
+     return {lo:exact,hi:exact,wLo:1,wHi:0,value:exact.value,exact:true,color:ROWC[exact.row]};
+   }
+   if(!lo)lo=s[0];
+   if(!hi)hi=s[s.length-1];
+   var dz=hi.z-lo.z;
+   var wLo=dz===0?1:(hi.z-zR)/dz;
+   var wHi=dz===0?0:(zR-lo.z)/dz;
+   lo.value=sampleValue(lo,alpha);
+   hi.value=sampleValue(hi,alpha);
+   var pval=wLo*lo.value+wHi*hi.value;
+   return {lo:lo,hi:hi,wLo:wLo,wHi:wHi,value:pval,exact:false,color:blendColor(ROWC[lo.row],ROWC[hi.row],wLo,wHi)};
+ }
+
+ function bandGradient(id,x1,y1,x2,y2,c0,c1){
+   var g=document.getElementById(id);
+   if(!g)g=mk('linearGradient',{id:id},defs);
+   clr(g);
+   g.setAttribute('gradientUnits','userSpaceOnUse');
+   g.setAttribute('x1',fmt(x1,2));g.setAttribute('y1',fmt(y1,2));
+   g.setAttribute('x2',fmt(x2,2));g.setAttribute('y2',fmt(y2,2));
+   mk('stop',{offset:'0%','stop-color':c0,'stop-opacity':1},g);
+   mk('stop',{offset:'100%','stop-color':c1,'stop-opacity':1},g);
+   return 'url(#'+id+')';
+ }
+
+ // 各角αで補間に使うのは、z_R を挟む隣接2本のデータ線の間（幅d/2）。
+ // データ線は60°ごとに z_R を横切るので、使用域は60°区切りの平行四辺形の連なりになる。
+ // グラデーションはデータ線と直交方向に張り、z_R線上の色＝その角の係数どおりの混合色。
+ function drawCompleteUseBands(){
+   var kx=(dx1-dx0)/(ZMAX-ZMIN);
+   var ux=FE*kx, uy=dy1-dy0, L=Math.sqrt(ux*ux+uy*uy);
+   var vx=uy/L, vy=-ux/L;
+   for(var i=0;i<6;i++){
+     var a0=i*60, a1=a0+60, am=a0+30;
+     var pr=pairFor(am);
+     var bLo=pr.lo.z-am/120, bHi=pr.hi.z-am/120;
+     var Ax=Xz(bLo+a0/120), Bx=Xz(bHi+a0/120), Cx=Xz(bHi+a1/120), Dx=Xz(bLo+a1/120);
+     var Ay=Ya(a0), Cy=Ya(a1);
+     var cLo=ROWC[pr.lo.row], cHi=ROWC[pr.hi.row];
+     var glen=(Bx-Ax)*vx;
+     var fill=bandGradient('useSeg'+i,Ax,Ay,Ax+vx*glen,Ay+vy*glen,cLo,cHi);
+     mk('polygon',{points:fmt(Ax,1)+','+fmt(Ay,1)+' '+fmt(Bx,1)+','+fmt(Ay,1)+' '+fmt(Cx,1)+','+fmt(Cy,1)+' '+fmt(Dx,1)+','+fmt(Cy,1),
+       fill:fill,opacity:0.5},gDiagBand);
+     mk('line',{x1:fmt(Ax,1),y1:fmt(Ay,1),x2:fmt(Dx,1),y2:fmt(Cy,1),stroke:cLo,'stroke-width':2.2,opacity:0.9},gDiagBand);
+     mk('line',{x1:fmt(Bx,1),y1:fmt(Ay,1),x2:fmt(Cx,1),y2:fmt(Cy,1),stroke:cHi,'stroke-width':2.2,opacity:0.9},gDiagBand);
+   }
+ }
+
+ function drawDiagram(p){
+   clr(gDiagGrid);clr(gDiagData);clr(gDiagBand);clr(gDiagHi);clr(gDiagLbl);
+   mk('rect',{x:dx0,y:dy0,width:dx1-dx0,height:dy1-dy0,fill:'#fbfdfb',stroke:DGRY,'stroke-width':1.4},gDiagGrid);
+   for(var z=ZMIN;z<=ZMAX;z+=1){
+     mk('line',{x1:Xz(z),y1:dy0,x2:Xz(z),y2:dy1,stroke:z%3===0?'#d8e0d8':'#edf1ed','stroke-width':z%3===0?1.1:0.8},gDiagGrid);
+     mk('line',{x1:Xz(z),y1:dy1,x2:Xz(z),y2:dy1+6,stroke:MUT,'stroke-width':1.1},gDiagLbl);
+     tx({x:Xz(z),y:dy1+22,'font-size':11.5,fill:MUT,'text-anchor':'middle'},z,gDiagLbl);
+   }
+   [0,90,180,270,360].forEach(function(a){
+     var active=(p.alpha!=null && a===p.alpha);
+     mk('line',{x1:dx0,y1:Ya(a),x2:dx1,y2:Ya(a),stroke:active?'#e7dcc8':'#edf1ed','stroke-width':active?1.2:0.9},gDiagGrid);
+     mk('line',{x1:dx0-6,y1:Ya(a),x2:dx0,y2:Ya(a),stroke:MUT,'stroke-width':1.1},gDiagLbl);
+     tx({x:dx0-10,y:Ya(a)+4,'font-size':11.5,fill:MUT,'text-anchor':'end'},a+'°',gDiagLbl);
+   });
+   tx({x:(dx0+dx1)/2,y:dy1+44,'font-size':13,'font-weight':700,fill:MUT,'text-anchor':'middle'},'z（体軸位置・d単位）→',gDiagLbl);
+   tx({x:dx0-40,y:(dy0+dy1)/2,'font-size':13,'font-weight':700,fill:MUT,'text-anchor':'middle','transform':'rotate(-90 '+(dx0-40)+' '+((dy0+dy1)/2)+')'},'投影角 α',gDiagLbl);
+
+   for(var n=0;n<5;n++)for(var k=0;k<4;k++){
+     var r0=lineStartReal(n,k),o0=lineStartOpp(n,k);
+     mk('line',{x1:Xz(r0),y1:Ya(0),x2:Xz(r0+FE),y2:Ya(360),stroke:ROWC[k],
+       'stroke-width':2.0,'stroke-linecap':'round',opacity:0.82},gDiagData);
+     mk('line',{x1:Xz(o0),y1:Ya(0),x2:Xz(o0+FE),y2:Ya(360),stroke:ROWC[k],
+       'stroke-width':1.8,'stroke-dasharray':'6 4','stroke-linecap':'round',opacity:0.64},gDiagData);
+   }
+   for(var i=0;i<4;i++)mk('line',{x1:714+i*13,y1:178,x2:724+i*13,y2:178,stroke:ROWC[i],'stroke-width':3.4,'stroke-linecap':'round'},gDiagLbl);
+   tx({x:772,y:182,'font-size':11.3,fill:INK},'実線＝実データ（橙・赤・青・緑）',gDiagLbl);
+   mk('line',{x1:1000,y1:178,x2:1032,y2:178,stroke:DGRY,'stroke-width':2.1,'stroke-dasharray':'6 4'},gDiagLbl);
+   tx({x:1038,y:182,'font-size':11.3,fill:INK},'破線＝対向データ',gDiagLbl);
+
+   if(p.target||p.alpha!=null||p.complete){
+     mk('line',{x1:Xz(zR),y1:dy0,x2:Xz(zR),y2:dy1,stroke:RED,'stroke-width':2,'stroke-dasharray':'7 5'},gDiagHi);
+     tx({x:Xz(zR)+8,y:dy0+18,'font-size':12.5,'font-weight':700,fill:RED,
+       stroke:'#fff','stroke-width':3,'paint-order':'stroke'},'z_R='+fmt(zR,1),gDiagHi);
+   }
+   if(p.alpha!=null){
+     var a0=p.alpha, y=Ya(a0), pr=pairFor(a0);
+     var topRow=a0===0, botRow=a0===360;
+     mk('line',{x1:dx0,y1:y,x2:dx1,y2:y,stroke:AMB,'stroke-width':2.2,'stroke-dasharray':'7 5'},gDiagHi);
+     tx({x:dx1-8,y:topRow?y+18:y-10,'font-size':12.5,'font-weight':700,fill:ADK,'text-anchor':'end',
+       stroke:'#fff','stroke-width':3,'paint-order':'stroke'},'α='+a0+'°',gDiagHi);
+     allSamples(a0).forEach(function(s){
+       if(s.z<ZMIN||s.z>ZMAX)return;
+       mk('circle',{cx:Xz(s.z),cy:y,r:3.2,fill:s.type==='実'?ROWC[s.row]:'#fff',stroke:ROWC[s.row],
+         'stroke-width':1.2,opacity:0.9},gDiagHi);
+     });
+     if(pr.exact){
+       var se=pr.lo;
+       mk('circle',{cx:Xz(zR),cy:y,r:8.5,fill:se.type==='実'?ROWC[se.row]:'#fff',stroke:ROWC[se.row],'stroke-width':se.type==='実'?2.1:2.6},gDiagHi);
+       tx({x:Xz(zR)-14,y:topRow?y+26:(botRow?y-12:y-14),'font-size':11.5,'font-weight':700,fill:ROWC[se.row],'text-anchor':'end',
+         stroke:'#fff','stroke-width':3,'paint-order':'stroke'},sampleLabel(se)+'（z_R上）',gDiagHi);
+       if(p.showCreated){
+         mk('circle',{cx:Xz(zR),cy:y,r:13,fill:'none',stroke:pr.color,'stroke-width':2.6,'stroke-dasharray':'4 3'},gDiagHi);
+         tx({x:Xz(zR)+18,y:topRow?y+26:(botRow?y-12:y-14),'font-size':12,'font-weight':700,fill:pr.color,
+           stroke:'#fff','stroke-width':3,'paint-order':'stroke'},a0+'°補正＝係数1.00でそのまま',gDiagHi);
+       }
+     }else{
+       mk('line',{x1:Xz(pr.lo.z),y1:y,x2:Xz(pr.hi.z),y2:y,stroke:pr.color,'stroke-width':6,opacity:0.24,'stroke-linecap':'round'},gDiagHi);
+       mk('circle',{cx:Xz(pr.lo.z),cy:y,r:8.5,fill:pr.lo.type==='実'?ROWC[pr.lo.row]:'#fff',stroke:ROWC[pr.lo.row],'stroke-width':pr.lo.type==='実'?2.1:2.6},gDiagHi);
+       mk('circle',{cx:Xz(pr.hi.z),cy:y,r:8.5,fill:pr.hi.type==='実'?ROWC[pr.hi.row]:'#fff',stroke:ROWC[pr.hi.row],'stroke-width':pr.hi.type==='実'?2.1:2.6},gDiagHi);
+       tx({x:Xz(pr.lo.z)-8,y:topRow?y+30:y+24,'font-size':11.5,'font-weight':700,fill:ROWC[pr.lo.row],'text-anchor':'end'},sampleLabel(pr.lo),gDiagHi);
+       tx({x:Xz(pr.hi.z)+8,y:topRow?y+44:y-16,'font-size':11.5,'font-weight':700,fill:ROWC[pr.hi.row]},sampleLabel(pr.hi),gDiagHi);
+       if(p.showCreated){
+         mk('circle',{cx:Xz(zR),cy:y,r:8.5,fill:pr.color,stroke:'#fff','stroke-width':2.4},gDiagHi);
+         tx({x:Xz(zR)+10,y:topRow?y+20:y-18,'font-size':12,'font-weight':700,fill:pr.color,
+           stroke:'#fff','stroke-width':3,'paint-order':'stroke'},a0+'°補正',gDiagHi);
+       }
+     }
+   }
+   if(p.complete){
+     drawCompleteUseBands();
+     SAMPLE_ANGLES.forEach(function(a){
+       var pr=pairFor(a);
+       mk('line',{x1:dx0,y1:Ya(a),x2:Xz(zR)-4,y2:Ya(a),stroke:pr.color,'stroke-width':1.3,'stroke-dasharray':'4 4',opacity:0.55},gDiagHi);
+       mk('circle',{cx:Xz(zR),cy:Ya(a),r:6.2,fill:pr.color,stroke:'#fff','stroke-width':1.5},gDiagHi);
+       tx({x:Xz(zR)+10,y:Ya(a)+4,'font-size':11.5,'font-weight':700,fill:pr.color,
+         stroke:'#fff','stroke-width':3,'paint-order':'stroke'},a+'°',gDiagHi);
+     });
+     tx({x:Xz(zR)+16,y:dy0+40,'font-size':12,'font-weight':700,fill:GD,
+       stroke:'#fff','stroke-width':3,'paint-order':'stroke'},'補正ビュー（60°ごとに係数1）',gDiagHi);
+   }
+   drawCalcBox(p);
+ }
+
+ function drawCalcBox(p){
+   if(p.alpha==null && !p.complete)return;
+   var x=684,y=506,w=540,h=46;
+   mk('rect',{x:x,y:y,width:w,height:h,rx:8,fill:'#fff8e8',stroke:'#f2c46d','stroke-width':1.2},gDiagLbl);
+   if(p.complete){
+     tx({x:x+16,y:y+20,'font-size':13,'font-weight':700,fill:ADK},'色帯＝各角度で補間に使う実データ域（幅d/2）。色は使用2列のグラデーション',gDiagLbl);
+     tx({x:x+16,y:y+39,'font-size':14,'font-weight':800,fill:GD},'z_R線上の色が係数どおりの混合色。60°ごとに係数1（純色）の点を通る',gDiagLbl);
+   }else{
+     var pr=pairFor(p.alpha);
+     if(pr.exact){
+       if(!p.showCreated){
+         tx({x:x+16,y:y+20,'font-size':13,'font-weight':700,fill:ADK},
+           '元データ：'+sampleLabel(pr.lo)+'（z='+fmt(pr.lo.z,2)+'）が z_R='+fmt(zR,1)+' に一致 → 補間不要',gDiagLbl);
+         tx({x:x+16,y:y+39,'font-size':13.5,'font-weight':800,fill:pr.color},
+           '次のクリックで、このデータを係数1.00のまま α='+p.alpha+'° の補正ビューに採用',gDiagLbl);
+       }else{
+         tx({x:x+16,y:y+20,'font-size':13,'font-weight':700,fill:ADK},
+           'P(z_R,'+p.alpha+'°) = 1.00 × P['+sampleLabel(pr.lo)+']',gDiagLbl);
+         tx({x:x+16,y:y+39,'font-size':14,'font-weight':800,fill:pr.color},
+           '= 1.00×'+fmt(pr.lo.value,0)+' = '+fmt(pr.value,0)+'（混合なし・純色）',gDiagLbl);
+       }
+     }else if(!p.showCreated){
+       tx({x:x+16,y:y+20,'font-size':13,'font-weight':700,fill:ADK},
+         '元データ：'+sampleLabel(pr.lo)+'（z='+fmt(pr.lo.z,2)+'） と '+sampleLabel(pr.hi)+'（z='+fmt(pr.hi.z,2)+'）',gDiagLbl);
+       tx({x:x+16,y:y+39,'font-size':13.5,'font-weight':800,fill:pr.color},
+         '次のクリックで、この2ビューから α='+p.alpha+'° の補正ビューを作成',gDiagLbl);
+     }else{
+       tx({x:x+16,y:y+20,'font-size':13,'font-weight':700,fill:ADK},
+         'P(z_R,'+p.alpha+'°) = '+fmt(pr.wLo,2)+' P['+sampleLabel(pr.lo)+'] + '+fmt(pr.wHi,2)+' P['+sampleLabel(pr.hi)+']',gDiagLbl);
+       tx({x:x+16,y:y+39,'font-size':14,'font-weight':800,fill:pr.color},
+         '= '+fmt(pr.wLo,2)+'×'+fmt(pr.lo.value,0)+' + '+fmt(pr.wHi,2)+'×'+fmt(pr.hi.value,0)+' = '+fmt(pr.value,0),gDiagLbl);
+     }
+   }
+ }
+
+ function angleSourceState(a){
+   var pr=pairFor(a);
+   if(pr.exact)return {k:'alpha'+a+'source',target:true,alpha:a,showCreated:false,
+     msg1:'α='+a+'° では '+sampleLabel(pr.lo)+' がちょうど z_R 上にある。',
+     msg2:'z_R を挟む2点は不要。このデータを係数1.00でそのまま使える。'};
+   return {k:'alpha'+a+'source',target:true,alpha:a,showCreated:false,
+     msg1:'α='+a+'° の元データを選ぶ。',
+     msg2:sampleLabel(pr.lo)+' と '+sampleLabel(pr.hi)+' が z_R='+fmt(zR,1)+' を挟む。'};
+ }
+ function angleCreatedState(a){
+   var pr=pairFor(a);
+   if(pr.exact)return {k:'alpha'+a+'created',target:true,alpha:a,showCreated:true,
+     msg1:'α='+a+'° の補正ビュー：'+sampleLabel(pr.lo)+' をそのまま採用する。',
+     msg2:'係数1.00で混合がないため、点は純色（'+ROWCOLORN[pr.lo.row]+'）のまま。'};
+   return {k:'alpha'+a+'created',target:true,alpha:a,showCreated:true,
+     msg1:'α='+a+'° の補正ビューを作成する。',
+     msg2:'2つの元データを重み付き平均し、混合色の点として右図に置く。'};
+ }
+ var STATES=[
+   {k:'intro',msg1:'ピッチ0.75では、実データと対向データが互い違いに並ぶ。',msg2:'各検出器列は橙・赤・青・緑のまま。補間値は、使った2列の混合色で表示する。'},
+   {k:'target',target:true,msg1:'再構成したい断面 z_R='+fmt(zR,1)+'d を決める。',msg2:'左の物理ビューでは薄い面、右の展開図では赤い縦線が目標断面 z_R。'},
+   angleSourceState(0),
+   angleCreatedState(0),
+   angleSourceState(90),
+   angleCreatedState(90),
+   angleSourceState(180),
+   angleCreatedState(180),
+   angleSourceState(270),
+   angleCreatedState(270),
+   angleSourceState(360),
+   angleCreatedState(360),
+   {k:'complete',target:true,complete:true,msg1:'0°・90°・180°・270°・360° の補正ビューができた。',msg2:'色帯＝各角度で実際に使うデータ域。z_R線上の色が係数どおりの混合色（60°ごとに係数1の純色）。'}
+ ];
+
+ mk('line',{x1:20,y1:582,x2:1260,y2:582,stroke:'#dde3dd','stroke-width':1},svg);
+ var readout1=tx({x:640,y:600,'font-size':14.5,'font-weight':700,fill:GD,'text-anchor':'middle'},'',gReadout);
+ var readout2=tx({x:640,y:618,'font-size':14.5,'font-weight':700,fill:GD,'text-anchor':'middle'},'',gReadout);
+ var state=0,timer=null,NS_=STATES.length-1;
+ var jumps=[['配置',0],['z_R',1],['0°',2,3],['90°',4,5],['180°',6,7],['270°',8,9],['360°',10,11],['完成',12]];
+ var jbtn=[];
+ jumps.forEach(function(j,i){
+   var bx=166+i*120;
+   var g=mk('g',{'class':'btn'},svg);
+   var r=mk('rect',{x:bx,y:628,width:108,height:28,rx:8,fill:'#fff',stroke:GL,'stroke-width':1.5},g);
+   var t=tx({x:bx+54,y:647,'font-size':13,'font-weight':700,fill:GREEN,'text-anchor':'middle'},j[0],g);
+   (function(v){g.addEventListener('click',function(){setState(v);});})(j[1]);
+   jbtn.push({r:r,t:t,v:j[1],end:j[2]==null?j[1]:j[2]});
+ });
+ function ctlBtn(x,w,label,fill,stroke,fg){
+   var g=mk('g',{'class':'btn'},svg);
+   mk('rect',{x:x,y:666,width:w,height:38,rx:10,fill:fill,stroke:stroke,'stroke-width':2},g);
+   tx({x:x+w/2,y:691,'font-size':15.5,'font-weight':700,fill:fg,'text-anchor':'middle'},label,g);
+   return g;
+ }
+ var bPrev=ctlBtn(358,132,'◀ 戻る','#ffffff',GREEN,GREEN);
+ var bNext=ctlBtn(504,132,'進む ▶',GREEN,GD,'#ffffff');
+ var bPlay=ctlBtn(650,132,'▶ 自動','#ffffff',AMB,ADK);
+ var bReset=ctlBtn(796,126,'リセット','#ffffff',RED,RED);
+ var playText=bPlay.querySelector('text');
+ bPrev.addEventListener('click',function(){setState(state-1);});
+ bNext.addEventListener('click',function(){setState(state+1);});
+ bReset.addEventListener('click',function(){stopPlay();setState(0);});
+ bPlay.addEventListener('click',function(){timer?stopPlay():startPlay();});
+ var stepTxt=tx({x:1180,y:650,'font-size':13,'font-weight':700,fill:MUT,'text-anchor':'end'},'',svg);
+ function startPlay(){
+   if(timer)return;
+   playText.textContent='⏸ 停止';
+   timer=setInterval(function(){if(state>=NS_){stopPlay();return;}setState(state+1);},1200);
+ }
+ function stopPlay(){if(timer){clearInterval(timer);timer=null;}playText.textContent='▶ 自動';}
+ function update(){
+   var p=STATES[state];
+   drawPhysical(p);drawDiagram(p);
+   readout1.textContent=p.msg1;readout2.textContent=p.msg2;
+   stepTxt.textContent=(state+1)+' / '+(NS_+1);
+   for(var i=0;i<jbtn.length;i++){
+     var b=jbtn[i];
+     if(state>=b.v && state<=b.end){b.r.setAttribute('fill',YEL);b.r.setAttribute('stroke',AMB);b.t.setAttribute('fill',INK);}
+     else{b.r.setAttribute('fill','#fff');b.r.setAttribute('stroke',GL);b.t.setAttribute('fill',GREEN);}
+   }
+ }
+ function setState(s){state=Math.max(0,Math.min(NS_,s));update();}
+ window.addEventListener('keydown',function(e){
+   if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '||e.key==='Enter'){e.preventDefault();setState(state+1);}
+   else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();setState(state-1);}
+   else if(e.key==='r'||e.key==='R'){e.preventDefault();stopPlay();setState(0);}
+ });
+ setState(0);
+})();
+]]></script>
+</svg>
+ </div>
+</div>
+</body>
+</html>
