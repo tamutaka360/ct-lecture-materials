@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MDCTのオーバースキャニング（オーバーレンジング）とアクティブコリメータ</title>
+<style>
+  body{margin:0;background:#f5f8f5;font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic',sans-serif;display:flex;justify-content:center;align-items:flex-start;}
+  svg{max-width:1280px;width:100%;height:auto;display:block;}
+  .btn{cursor:pointer;}
+  .btn:hover .bg{filter:brightness(0.94);}
+  text{user-select:none;-webkit-user-select:none;}
+</style>
+</head>
+<body>
+<svg id="stage" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9eff8"/><stop offset="1" stop-color="#c2cfe2"/>
+    </linearGradient>
+    <linearGradient id="tubeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f9bd77"/><stop offset="1" stop-color="#ee7f1f"/>
+    </linearGradient>
+    <pattern id="hatchR" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="none"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#e03131" stroke-width="2.6"/>
+    </pattern>
+    <pattern id="hatchG" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="7" height="7" fill="none"/>
+      <line x1="0" y1="0" x2="0" y2="7" stroke="#78909c" stroke-width="2.2"/>
+    </pattern>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="720" fill="#f5f8f5"/>
+  <text x="640" y="32" text-anchor="middle" font-size="23" font-weight="bold" fill="#333">MDCT のオーバースキャニング（オーバーレンジング）とアクティブコリメータ</text>
+  <rect x="40" y="44" width="1200" height="570" fill="#ffffff" stroke="#d9e0e6" stroke-width="1.5" rx="12"/>
+
+  <g id="gBand"></g>
+  <g id="gCouch"></g>
+  <g id="gPatient"></g>
+  <g id="gIrr"></g>
+  <g id="gRangeLines"></g>
+  <g id="gGantry"></g>
+  <g id="gDose"></g>
+  <g id="gAnno"></g>
+  <g id="gCard"></g>
+  <g id="gChip"></g>
+  <g id="gMsg"></g>
+  <g id="gCtl"></g>
+  <g id="gProg"></g>
+
+<script>
+// <![CDATA[
+'use strict';
+const NSVG='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const gBand=$('gBand'),gCouch=$('gCouch'),gPatient=$('gPatient'),gIrr=$('gIrr'),
+      gRangeLines=$('gRangeLines'),gGantry=$('gGantry'),gDose=$('gDose'),gAnno=$('gAnno'),
+      gCard=$('gCard'),gChip=$('gChip'),gMsg=$('gMsg'),gCtl=$('gCtl'),gProg=$('gProg');
+
+function mk(t,a,p){const e=document.createElementNS(NSVG,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e;}
+function tx(p,x,y,s,o){o=o||{};const e=mk('text',{x:x,y:y,'font-size':o.fs||14,fill:o.fill||'#333',
+  'text-anchor':o.an||'middle','font-weight':o.fw||'normal'},p);
+  if(o.halo){e.setAttribute('stroke','#fff');e.setAttribute('stroke-width',o.sw||3.5);
+    e.setAttribute('paint-order','stroke');e.setAttribute('stroke-linejoin','round');}
+  e.textContent=s;return e;}
+function clr(g){while(g.firstChild)g.removeChild(g.firstChild);}
+function head(p,x,y,ang,c){const s=8,w=3.2;
+  const x1=x-s*Math.cos(ang)+w*Math.sin(ang),y1=y-s*Math.sin(ang)-w*Math.cos(ang);
+  const x2=x-s*Math.cos(ang)-w*Math.sin(ang),y2=y-s*Math.sin(ang)+w*Math.cos(ang);
+  mk('polygon',{points:x+','+y+' '+x1+','+y1+' '+x2+','+y2,fill:c},p);}
+function arrow(p,x1,y1,x2,y2,c,dbl,w){
+  mk('line',{x1:x1,y1:y1,x2:x2,y2:y2,stroke:c,'stroke-width':w||2},p);
+  head(p,x2,y2,Math.atan2(y2-y1,x2-x1),c);
+  if(dbl)head(p,x1,y1,Math.atan2(y1-y2,x1-x2),c);}
+
+/* ---------- geometry ---------- */
+const ZS=0, ZE=4, HW=1, MARG=0.12, SC=90;      // z units: range [0,4], beam width W=2 (half=1)
+const zX=z=>460+z*SC;                          // z=-4 -> x=100, z=8 -> x=1180
+const ISO=320, COLY=172, DETY=436, SCOL=0.55, SDET=1.35;
+const DB=548, PXD=30;                          // dose baseline & px per exposure-unit
+const C0=-1, C1=5;                             // scan start/end tube-center positions
+const GRN='#2f9e44', GRND='#1b6b34', AMB='#f08c00', RED='#e03131', YEL='#ffd000',
+      SLT='#37474f', GRY='#868e96';
+const NSTATE=20;
+
+/* ---------- static scene ---------- */
+(function buildStatic(){
+  // imaging range band
+  mk('rect',{x:zX(ZS),y:212,width:zX(ZE)-zX(ZS),height:DB-212,fill:GRN,'fill-opacity':.055},gBand);
+  arrow(gBand,zX(ZS),206,zX(ZE),206,GRN,true,2);
+  tx(gBand,640,197,'撮影（画像化）したい範囲',{fs:16,fill:GRND,fw:'bold',halo:true});
+  // couch
+  mk('rect',{x:120,y:398,width:1055,height:14,rx:5,fill:'#cfd8e0',stroke:'#9aa5b1','stroke-width':1.5},gCouch);
+  // patient (supine, head left)  -- house silhouette
+  const gP=mk('g',{transform:'translate(-416,-130) scale(1.25)',fill:'url(#bodyGrad)',
+                   stroke:'#5a6b8c','stroke-width':2},gPatient);
+  mk('path',{d:'M950,318 L1200,344 A17 17 0 0 1 1200,378 L950,410 Z'},gP);                 // legs
+  mk('rect',{x:1188,y:296,width:26,height:80,rx:12,transform:'rotate(48 1201 364)'},gP);   // foot (toes up, leaning right)
+  mk('rect',{x:548,y:336,width:52,height:46},gP);                                          // neck
+  mk('ellipse',{cx:745,cy:352,rx:165,ry:74},gP);                                           // torso
+  mk('rect',{x:640,y:372,width:190,height:34,rx:17},gP);                                   // arm
+  mk('circle',{cx:910,cy:362,r:60},gP);                                                    // pelvis
+  mk('polygon',{points:'486,280 470,322 506,322'},gP);                                     // nose (up)
+  mk('ellipse',{cx:500,cy:360,rx:55,ry:48},gP);                                            // head
+  // range edge guides
+  [ZS,ZE].forEach(z=>mk('line',{x1:zX(z),y1:212,x2:zX(z),y2:DB,stroke:GRN,
+    'stroke-width':1.6,'stroke-dasharray':'6 5','stroke-opacity':.85},gRangeLines));
+})();
+
+/* ---------- gantry ---------- */
+function aperture(mode,c){
+  let a0=c-HW,a1=c+HW;
+  if(mode==='B'){a0=Math.max(ZS-MARG,a0);a1=Math.min(ZE+MARG,a1);}
+  return [a0,a1];
+}
+function drawGantry(o){
+  const g=gGantry; g.setAttribute('opacity',o.dim?0.45:1);
+  const fx=zX(o.c);
+  const ap=aperture(o.mode,o.c), a0=ap[0], a1=ap[1];
+  const cX=a=>fx+(a-o.c)*SC*SCOL, dX=a=>fx+(a-o.c)*SC*SDET;
+  if(o.ghost){ // dashed outline (explanation state)
+    mk('rect',{x:fx-38,y:92,width:76,height:48,rx:10,fill:'#f8f9fa','fill-opacity':.5,
+      stroke:GRY,'stroke-width':1.5,'stroke-dasharray':'5 4'},g);
+    [[o.c-HW],[o.c+HW]].forEach(e=>mk('line',{x1:cX(e[0]),y1:COLY,x2:dX(e[0]),y2:DETY,
+      stroke:GRY,'stroke-width':1.6,'stroke-dasharray':'6 5'},g));
+    mk('rect',{x:fx-128,y:438,width:256,height:14,rx:4,fill:'none',stroke:GRY,
+      'stroke-width':1.5,'stroke-dasharray':'5 4'},g);
+    return ap;
+  }
+  // transmitted beam
+  if(o.beamOn&&a1-a0>1e-4){
+    mk('polygon',{points:cX(a0)+','+COLY+' '+cX(a1)+','+COLY+' '+dX(a1)+','+DETY+' '+dX(a0)+','+DETY,
+      fill:YEL,'fill-opacity':.34,stroke:AMB,'stroke-width':1,'stroke-opacity':.55},g);
+  }
+  // blocked ("would-be") beam, active-collimator mode only
+  if(o.beamOn&&o.mode==='B'){
+    const fL=fx-HW*SC*SCOL, fR=fx+HW*SC*SCOL, fLd=fx-HW*SC*SDET, fRd=fx+HW*SC*SDET;
+    if(a0>o.c-HW+1e-6){
+      mk('polygon',{points:fL+','+COLY+' '+cX(a0)+','+COLY+' '+dX(a0)+','+DETY+' '+fLd+','+DETY,
+        fill:'url(#hatchG)','fill-opacity':.5},g);
+      mk('line',{x1:fL,y1:COLY,x2:fLd,y2:DETY,stroke:GRY,'stroke-width':1.4,'stroke-dasharray':'6 5'},g);
+      if(cX(a0)-fL>26)tx(g,(fL+dX(a0))/2-8,268,'遮蔽',{fs:13,fill:'#546e7a',fw:'bold',halo:true});
+    }
+    if(a1<o.c+HW-1e-6){
+      mk('polygon',{points:cX(a1)+','+COLY+' '+fR+','+COLY+' '+fRd+','+DETY+' '+dX(a1)+','+DETY,
+        fill:'url(#hatchG)','fill-opacity':.5},g);
+      mk('line',{x1:fR,y1:COLY,x2:fRd,y2:DETY,stroke:GRY,'stroke-width':1.4,'stroke-dasharray':'6 5'},g);
+      if(fR-cX(a1)>26)tx(g,(fR+dX(a1))/2+8,268,'遮蔽',{fs:13,fill:'#546e7a',fw:'bold',halo:true});
+    }
+  }
+  // X-ray tube
+  mk('rect',{x:fx-38,y:92,width:76,height:48,rx:10,fill:'url(#tubeGrad)',stroke:'#b25b10','stroke-width':1.6},g);
+  mk('rect',{x:fx-7,y:138,width:14,height:8,rx:2,fill:'#b25b10'},g);
+  // collimator housing + blades
+  mk('rect',{x:fx-114,y:145,width:228,height:31,rx:4,fill:'#eceff1',stroke:'#adb5bd','stroke-width':1.2},g);
+  const bl=mk('rect',{x:fx-110,y:148,width:Math.max(0,cX(a0)-(fx-110)),height:24,rx:3,fill:SLT},g);
+  const br=mk('rect',{x:cX(a1),y:148,width:Math.max(0,fx+110-cX(a1)),height:24,rx:3,fill:SLT},g);
+  // blade motion arrows (opening / closing)
+  if(o.beamOn&&o.mode==='B'){
+    if(a0>o.c-HW+1e-6&&o.c<ZS+HW){ // left blade opening as scan proceeds
+      arrow(g,cX(a0)-10,186,cX(a0)-52,186,AMB,false,2.5);
+      tx(g,cX(a0)-31,202,'羽根が開く',{fs:12,fill:AMB,fw:'bold',halo:true});
+    }
+    if(a1<o.c+HW-1e-6&&o.c>ZE-HW){ // right blade closing
+      arrow(g,cX(a1)+52,186,cX(a1)+10,186,AMB,false,2.5);
+      tx(g,cX(a1)+31,202,'羽根が閉じる',{fs:12,fill:AMB,fw:'bold',halo:true});
+    }
+  }
+  // detector (multi-row)
+  mk('rect',{x:fx-128,y:438,width:256,height:14,rx:4,fill:'#2b8a89',stroke:'#0c5350','stroke-width':1.4},g);
+  // feed direction
+  if(o.feed){
+    arrow(g,fx+52,76,fx+112,76,'#666',false,2.2);
+    tx(g,fx+82,64,'送り（回転しながら移動）',{fs:12,fill:'#666',halo:true});
+  }
+  if(o.labels){
+    tx(g,fx+130,105,'X線管',{fs:14,fill:'#a05a12',fw:'bold',an:'start',halo:true});
+    mk('line',{x1:fx+42,y1:112,x2:fx+126,y2:104,stroke:'#a05a12','stroke-width':1},g);
+    tx(g,fx+130,163,'コリメータ（2枚の羽根）',{fs:14,fill:SLT,fw:'bold',an:'start',halo:true});
+    mk('line',{x1:fx+116,y1:160,x2:fx+126,y2:160,stroke:SLT,'stroke-width':1},g);
+    tx(g,fx+146,449,'多列検出器',{fs:14,fill:'#0c5350',fw:'bold',an:'start',halo:true});
+  }
+  return ap;
+}
+
+/* ---------- accumulated irradiation on the patient ---------- */
+function drawIrr(mode,c){
+  let lo,hi;
+  if(mode==='A'){lo=C0-HW;hi=Math.min(c+HW,C1+HW);}
+  else{lo=ZS-MARG;hi=Math.min(ZE+MARG,c+HW);}
+  if(hi<=lo)return;
+  mk('rect',{x:zX(lo),y:226,width:zX(hi)-zX(lo),height:170,fill:'#ffd43b','fill-opacity':.15},gIrr);
+  if(mode==='A'){
+    if(lo<ZS)mk('rect',{x:zX(lo),y:226,width:zX(Math.min(hi,ZS))-zX(lo),height:170,
+      fill:RED,'fill-opacity':.09},gIrr);
+    if(hi>ZE)mk('rect',{x:zX(Math.max(lo,ZE)),y:226,width:zX(hi)-zX(Math.max(lo,ZE)),height:170,
+      fill:RED,'fill-opacity':.09},gIrr);
+  }
+}
+
+/* ---------- dose profile ---------- */
+function doseA(z,ccur){return Math.max(0,Math.min(ccur,z+HW)-Math.max(C0,z-HW));}
+function drawDose(mode,ccur,ap){
+  const g=gDose;
+  mk('line',{x1:100,y1:DB,x2:1180,y2:DB,stroke:'#8a949e','stroke-width':1.6},g);
+  tx(g,1178,DB+16,'z（体軸方向）',{fs:12,fill:'#777',an:'end'});
+  tx(g,112,500,'線量プロファイル（z 方向の被ばく分布）',{fs:13,fill:'#667',an:'start'});
+  for(let z=-2.3;z<=6.3;z+=0.05){
+    let D=doseA(z,ccur);
+    if(mode==='B'&&(z<ZS-MARG||z>ZE+MARG))D=0;
+    if(D<0.03)continue;
+    const col=(z<ZS-1e-9||z>ZE+1e-9)?RED:GRN;
+    mk('rect',{x:zX(z)-2.3,y:DB-D*PXD,width:4.6,height:D*PXD,fill:col,'fill-opacity':.78},g);
+  }
+  if(ap&&ap[1]-ap[0]>1e-4)
+    mk('rect',{x:zX(ap[0]),y:540,width:zX(ap[1])-zX(ap[0]),height:8,fill:YEL,'fill-opacity':.6},g);
+}
+
+/* ---------- state machine ---------- */
+function params(i){
+  if(i===0)return{kind:'intro'};
+  if(i===1)return{kind:'why'};
+  if(i<=8)return{kind:'sweep',mode:'A',c:i-3};
+  if(i===9)return{kind:'sumA'};
+  if(i===10)return{kind:'width'};
+  if(i===11)return{kind:'colintro'};
+  if(i<=18)return{kind:'sweep',mode:'B',c:i-13};
+  return{kind:'final'};
+}
+const MSGS=[
+ ['ヘリカルスキャンの計画：緑の帯が「画像を作りたい範囲」。','管球・検出器は回転しながら z 方向（右向き）へ進みます。クリック / →キーで進む'],
+ ['範囲の端の断面（赤破線）を再構成するには、ビームがその断面を覆っている間のデータが必要。','→ 管球は範囲の手前 W/2 から照射を始め、範囲の先 W/2 まで進まなければならない'],
+ ['スキャン開始：端の断面のデータを得るため、撮影範囲より手前から照射が始まる。','この時点ではビームのほとんどが範囲の外！'],
+ ['管球中心が範囲の端に到達。','ここまでに照射した線量の多く（赤）は範囲外のもの'],
+ ['ビーム全体が範囲内に入った。','下の線量プロファイルが積み上がっていく'],
+ ['範囲の中央付近を撮影中'],
+ ['範囲内を撮影中'],
+ ['ビームの先端が範囲の外へはみ出し始めた。','再び範囲外への被ばくが発生する'],
+ ['スキャン終了：端の断面のデータのため、範囲の先まで照射して終わる'],
+ ['範囲外の被ばく（赤い裾）＝ オーバーレンジング（オーバースキャニング）。','長さは片側あたりほぼビーム幅 W → 両側で約 2W ぶんが「画像にならない被ばく」'],
+ ['オーバーレンジの長さはビーム幅にほぼ比例する。','検出器の多列化・ワイドビーム化で深刻になった → 対策が「アクティブコリメータ」'],
+ ['アクティブコリメータ：コリメータの 2 枚の羽根が独立に高速で動き、','スキャンの開始時・終了時だけ非対称に閉じて、範囲外へ向かう X 線を遮る'],
+ ['照射開始：左の羽根がほぼ閉じて、範囲外へ向かう X 線を遮蔽。','端の断面の再構成に必要な分（右端のわずかな開口）だけを通す'],
+ ['管球の移動に合わせて左の羽根が開いていく。','範囲の外（左側）には X 線を当てない'],
+ ['ビーム全体が範囲内に入った → 羽根は全開。','ここから先はコリメータ固定の場合とまったく同じ'],
+ ['範囲内：全開のままスキャン'],
+ ['範囲内：全開のままスキャン'],
+ ['ビーム先端が範囲を超える → 今度は右の羽根が閉じ始める。','範囲の先には X 線を当てない'],
+ ['照射終了：右の羽根がほぼ閉じて、範囲の先への被ばくを防いだ'],
+ ['比較：赤い破線（従来）との差＝アクティブコリメータで低減された被ばく（斜線部）。','※ 端の断面の再構成に必要な最小限（マージン）だけはわずかに照射される']
+];
+
+function drawChip(mode){
+  const col=mode==='A'?GRY:GRN, lab=mode==='A'?'従来：コリメータ固定':'アクティブコリメータ 作動';
+  mk('rect',{x:984,y:58,width:238,height:28,rx:14,fill:col,'fill-opacity':.12,stroke:col,'stroke-width':1.5},gChip);
+  tx(gChip,1103,77,lab,{fs:13,fill:mode==='A'?'#555':GRND,fw:'bold'});
+}
+function drawOutWarn(a0,a1){
+  const lOut=Math.min(a1,ZS)-a0, rOut=a1-Math.max(a0,ZE);
+  if(lOut>0.3)tx(gAnno,zX((a0+Math.min(a1,ZS))/2),472,'範囲外に照射中',{fs:13,fill:RED,fw:'bold',halo:true});
+  if(rOut>0.3)tx(gAnno,zX((Math.max(a0,ZE)+a1)/2),472,'範囲外に照射中',{fs:13,fill:RED,fw:'bold',halo:true});
+}
+function drawSumA(){
+  // hatch over the wasted tails (dose triangles)
+  mk('polygon',{points:zX(-2)+','+DB+' '+zX(0)+','+(DB-2*PXD)+' '+zX(0)+','+DB,
+    fill:'url(#hatchR)','fill-opacity':.55},gAnno);
+  mk('polygon',{points:zX(4)+','+(DB-2*PXD)+' '+zX(6)+','+DB+' '+zX(4)+','+DB,
+    fill:'url(#hatchR)','fill-opacity':.55},gAnno);
+  // brackets (labels sit ON the arrow line, masked by their white halo)
+  arrow(gAnno,zX(-2),560,zX(0),560,RED,true,2);
+  tx(gAnno,zX(-1),564,'オーバーレンジ ≈ W',{fs:12,fill:RED,fw:'bold',halo:true,sw:6});
+  arrow(gAnno,zX(0),560,zX(4),560,GRN,true,2);
+  tx(gAnno,zX(2),564,'撮影範囲',{fs:12,fill:GRND,fw:'bold',halo:true,sw:6});
+  arrow(gAnno,zX(4),560,zX(6),560,RED,true,2);
+  tx(gAnno,zX(5),564,'オーバーレンジ ≈ W',{fs:12,fill:RED,fw:'bold',halo:true,sw:6});
+  // wasted irradiation on the patient
+  mk('rect',{x:zX(-2),y:226,width:zX(0)-zX(-2),height:170,fill:'url(#hatchR)','fill-opacity':.22},gAnno);
+  mk('rect',{x:zX(4),y:226,width:zX(6)-zX(4),height:170,fill:'url(#hatchR)','fill-opacity':.22},gAnno);
+  tx(gAnno,zX(-1),218,'画像にならない被ばく',{fs:13,fill:RED,fw:'bold',halo:true});
+  tx(gAnno,zX(5),218,'画像にならない被ばく',{fs:13,fill:RED,fw:'bold',halo:true});
+}
+function dimScene(){
+  mk('rect',{x:41,y:45,width:1198,height:568,fill:'#f5f8f5','fill-opacity':.8},gCard);
+}
+function cardFrame(){
+  mk('rect',{x:250,y:80,width:780,height:396,rx:14,fill:'#fff','fill-opacity':.98,
+    stroke:'#adb5bd','stroke-width':1.5},gCard);
+}
+function drawWidthCard(){
+  dimScene();cardFrame();
+  tx(gCard,640,114,'ビーム幅とオーバーレンジの関係',{fs:20,fw:'bold'});
+  const mini=(cx,ramp,title)=>{
+    tx(gCard,cx,168,title,{fs:15,fw:'bold',fill:'#444'});
+    mk('rect',{x:cx-78,y:184,width:156,height:212,fill:GRN,'fill-opacity':.07},gCard);
+    [cx-78,cx+78].forEach(x=>mk('line',{x1:x,y1:184,x2:x,y2:396,stroke:GRN,
+      'stroke-width':1.4,'stroke-dasharray':'5 4','stroke-opacity':.85},gCard));
+    mk('line',{x1:cx-160,y1:396,x2:cx+160,y2:396,stroke:'#8a949e','stroke-width':1.5},gCard);
+    mk('rect',{x:cx-78,y:312,width:156,height:84,fill:GRN,'fill-opacity':.5},gCard);
+    const tl='M'+(cx-78-ramp)+',396 L'+(cx-78)+',312 L'+(cx-78)+',396 Z';
+    const tr='M'+(cx+78)+',312 L'+(cx+78+ramp)+',396 L'+(cx+78)+',396 Z';
+    [tl,tr].forEach(d=>{mk('path',{d:d,fill:RED,'fill-opacity':.5},gCard);
+                        mk('path',{d:d,fill:'url(#hatchR)','fill-opacity':.6},gCard);});
+    mk('path',{d:'M'+(cx-78-ramp)+',396 L'+(cx-78)+',312 L'+(cx+78)+',312 L'+(cx+78+ramp)+',396',
+      fill:'none',stroke:'#333','stroke-width':1.5},gCard);
+    arrow(gCard,cx-78-ramp,410,cx-78,410,RED,true,1.8);
+    arrow(gCard,cx+78,410,cx+78+ramp,410,RED,true,1.8);
+    tx(gCard,cx,432,'はみ出し（オーバーレンジ）'+(ramp<60?' 小':' 大'),{fs:14,fill:RED,fw:'bold'});
+  };
+  mini(450,26,'ビーム幅 小（例：4列）');
+  mini(830,100,'ビーム幅 大（多列・ワイドビーム）');
+  tx(gCard,640,462,'オーバーレンジ長 ≒ ビーム幅（片側）。列数が多いほど範囲外の被ばくが増える',{fs:15,fill:'#333',fw:'bold'});
+}
+function drawColCard(){
+  dimScene();cardFrame();
+  tx(gCard,640,114,'アクティブコリメータ（可動絞り）とは',{fs:20,fw:'bold'});
+  // tube + focal spot
+  mk('rect',{x:598,y:126,width:84,height:32,rx:8,fill:'url(#tubeGrad)',stroke:'#b25b10','stroke-width':1.4},gCard);
+  mk('circle',{cx:640,cy:164,r:6,fill:'#b25b10'},gCard);
+  tx(gCard,700,150,'X線管の焦点',{fs:12,fill:'#a05a12',an:'start'});
+  mk('line',{x1:648,y1:162,x2:696,y2:148,stroke:'#a05a12','stroke-width':1},gCard);
+  // blocked rays
+  [[520,206],[478,206],[436,206],[760,206],[802,206],[844,206]].forEach(pt=>
+    mk('line',{x1:640,y1:164,x2:pt[0],y2:pt[1],stroke:GRY,'stroke-width':1.4,'stroke-dasharray':'5 4'},gCard));
+  tx(gCard,462,196,'遮蔽',{fs:12,fill:'#546e7a',fw:'bold',halo:true});
+  tx(gCard,822,196,'遮蔽',{fs:12,fill:'#546e7a',fw:'bold',halo:true});
+  // transmitted beam
+  mk('polygon',{points:'588,236 692,236 823,418 457,418',fill:YEL,'fill-opacity':.32,
+    stroke:AMB,'stroke-width':1,'stroke-opacity':.55},gCard);
+  // blades
+  mk('rect',{x:410,y:206,width:178,height:30,rx:4,fill:SLT},gCard);
+  mk('rect',{x:692,y:206,width:178,height:30,rx:4,fill:SLT},gCard);
+  arrow(gCard,450,221,560,221,'#ffc078',true,2.6);
+  arrow(gCard,720,221,830,221,'#ffc078',true,2.6);
+  tx(gCard,640,262,'2 枚の羽根が独立に高速で動く',{fs:14,fill:AMB,fw:'bold',halo:true});
+  // range band under beam
+  mk('rect',{x:505,y:420,width:270,height:14,fill:GRN,'fill-opacity':.35},gCard);
+  tx(gCard,495,432,'撮影範囲',{fs:12,fill:GRND,fw:'bold',an:'end',halo:true});
+  tx(gCard,640,451,'（メーカー名称：Adaptive Dose Shield、Active Collimator など）',{fs:12,fill:'#777'});
+  tx(gCard,640,470,'撮影範囲の端では片側の羽根だけを閉じ、範囲外へ向かう X 線をカットする',{fs:15,fill:'#333',fw:'bold'});
+}
+function drawFinal(){
+  drawIrr('B',C1);
+  drawDose('B',C1,null);
+  // conventional profile outline
+  mk('path',{d:'M'+zX(-2)+','+DB+' L'+zX(0)+','+(DB-2*PXD)+' L'+zX(4)+','+(DB-2*PXD)+' L'+zX(6)+','+DB,
+    fill:'none',stroke:RED,'stroke-width':2.5,'stroke-dasharray':'8 6'},gAnno);
+  // saved dose (tails)
+  mk('polygon',{points:zX(-2)+','+DB+' '+zX(0)+','+(DB-2*PXD)+' '+zX(0)+','+DB,
+    fill:'url(#hatchR)','fill-opacity':.65},gAnno);
+  mk('polygon',{points:zX(4)+','+(DB-2*PXD)+' '+zX(6)+','+DB+' '+zX(4)+','+DB,
+    fill:'url(#hatchR)','fill-opacity':.65},gAnno);
+  // legend
+  mk('rect',{x:930,y:196,width:296,height:118,rx:10,fill:'#fff','fill-opacity':.96,
+    stroke:'#adb5bd','stroke-width':1.2},gAnno);
+  mk('line',{x1:946,y1:220,x2:996,y2:220,stroke:RED,'stroke-width':2.5,'stroke-dasharray':'8 6'},gAnno);
+  tx(gAnno,1006,225,'従来（コリメータ固定）',{fs:13,an:'start'});
+  mk('rect',{x:946,y:242,width:50,height:14,fill:GRN,'fill-opacity':.7},gAnno);
+  tx(gAnno,1006,254,'アクティブコリメータあり',{fs:13,an:'start'});
+  mk('rect',{x:946,y:272,width:50,height:14,fill:'url(#hatchR)',stroke:RED,'stroke-width':.8},gAnno);
+  tx(gAnno,1006,284,'低減された被ばく',{fs:13,an:'start',fill:RED,fw:'bold'});
+}
+
+/* ---------- controls ---------- */
+let S=0;
+const jumpDefs=[['イントロ',0],['従来スキャン',2],['オーバーレンジング',9],['ビーム幅の影響',10],['アクティブコリメータ',11],['まとめ／比較',19]];
+const jumpBtns=[];
+function makeBtn(g,x,y,w,h,label,fs,cb){
+  const b=mk('g',{'class':'btn'},g);
+  const r=mk('rect',{x:x,y:y,width:w,height:h,rx:7,fill:'#fff',stroke:GRN,'stroke-width':1.5,'class':'bg'},b);
+  const t=tx(b,x+w/2,y+h/2+fs*0.36,label,{fs:fs,fill:GRND,fw:'bold'});
+  b.addEventListener('click',e=>{e.stopPropagation();cb();});
+  return{g:b,r:r,t:t};
+}
+(function buildCtl(){
+  const widths=[110,142,182,162,206,150];let x=100;
+  jumpDefs.forEach((jd,i)=>{
+    const b=makeBtn(gCtl,x,626,widths[i],28,jd[0],14,()=>setState(jd[1]));
+    jumpBtns.push(b);x+=widths[i]+10;
+  });
+  makeBtn(gCtl,100,662,100,28,'◀ 戻る',14,()=>setState(S-1));
+  makeBtn(gCtl,210,662,100,28,'進む ▶',14,()=>setState(S+1));
+  makeBtn(gCtl,320,662,100,28,'リセット',14,()=>setState(0));
+  for(let i=0;i<NSTATE;i++){
+    const r=mk('rect',{x:470+i*36,y:668,width:33,height:16,rx:3,fill:'#fff',
+      stroke:'#b7c1c9','stroke-width':1,'class':'cell','data-i':i,style:'cursor:pointer'},gProg);
+    r.addEventListener('click',e=>{e.stopPropagation();setState(i);});
+  }
+})();
+function refreshCtl(){
+  let act=0;jumpDefs.forEach((jd,i)=>{if(S>=jd[1])act=i;});
+  jumpBtns.forEach((b,i)=>{
+    b.r.setAttribute('fill',i===act?GRN:'#fff');
+    b.t.setAttribute('fill',i===act?'#fff':GRND);
+  });
+  const cells=gProg.querySelectorAll('.cell');
+  cells.forEach(c=>{
+    const i=+c.getAttribute('data-i');
+    c.setAttribute('fill',i<S?GRN:(i===S?YEL:'#fff'));
+    c.setAttribute('fill-opacity',i<S?.8:1);
+  });
+  clr(gMsg);
+  const lines=MSGS[S]||[''];
+  tx(gMsg,640,lines.length>1?590:598,lines[0],{fs:16,fw:'bold',fill:'#333'});
+  if(lines[1])tx(gMsg,640,608,lines[1],{fs:14,fill:'#555'});
+  tx(gMsg,1187,704,(S+1)+' / '+NSTATE,{fs:12,fill:'#888',an:'end'});
+}
+
+/* ---------- update ---------- */
+function update(){
+  [gIrr,gGantry,gDose,gAnno,gCard,gChip].forEach(clr);
+  gGantry.setAttribute('opacity',1);
+  const p=params(S);
+  if(p.kind==='intro'){
+    drawGantry({c:C0,mode:'A',beamOn:false,labels:true});
+  }else if(p.kind==='why'){
+    drawGantry({c:C0,mode:'A',ghost:true});
+    drawGantry({c:C0+2*HW,mode:'A',ghost:true});
+    mk('line',{x1:zX(ZS),y1:212,x2:zX(ZS),y2:DB,stroke:RED,'stroke-width':2.5,'stroke-dasharray':'7 5'},gAnno);
+    tx(gAnno,zX(ZS)-10,232,'範囲の端の断面',{fs:13,fill:RED,fw:'bold',an:'end',halo:true});
+    arrow(gAnno,zX(C0),80,zX(C0+2*HW),80,'#555',true,2);
+    tx(gAnno,zX(C0+HW),68,'この間ずっと管球は照射しながら通過する必要',{fs:13,fill:'#555',halo:true});
+  }else if(p.kind==='sweep'){
+    drawChip(p.mode);
+    drawIrr(p.mode,p.c);
+    const ap=drawGantry({c:p.c,mode:p.mode,beamOn:true,feed:p.c<C1});
+    drawDose(p.mode,p.c,ap);
+    if(p.mode==='A')drawOutWarn(ap[0],ap[1]);
+  }else if(p.kind==='sumA'){
+    drawChip('A');
+    drawIrr('A',C1);
+    drawGantry({c:C1,mode:'A',beamOn:false,dim:true});
+    drawDose('A',C1,null);
+    drawSumA();
+  }else if(p.kind==='width'){
+    drawChip('A');
+    drawIrr('A',C1);
+    drawGantry({c:C1,mode:'A',beamOn:false,dim:true});
+    drawDose('A',C1,null);
+    drawWidthCard();
+  }else if(p.kind==='colintro'){
+    drawChip('B');
+    drawColCard();
+  }else{ // final
+    drawFinal();
+  }
+  refreshCtl();
+}
+function setState(i){S=Math.max(0,Math.min(NSTATE-1,i));update();}
+
+document.getElementById('stage').addEventListener('click',()=>setState(S+1));
+window.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '||e.key==='Enter'){e.preventDefault();setState(S+1);}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();setState(S-1);}
+  else if(e.key==='r'||e.key==='R'){setState(0);}
+});
+
+const q=new URLSearchParams(location.search);
+setState(q.get('s')?+q.get('s'):0);
+// ]]>
+</script>
+</svg>
+</body>
+</html>
