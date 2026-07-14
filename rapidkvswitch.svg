@@ -1,0 +1,105 @@
+<svg viewBox="0 0 940 430" xmlns="http://www.w3.org/2000/svg" font-family="'Hiragino Sans','Helvetica Neue',Arial,sans-serif">
+  <!--
+    Rapid kV switching（高速kVスイッチング）方式・ヘリカル撮影のアニメーション
+    管球は回転し続けながら 140 kV(青) ⇄ 80 kV(橙) を高速切替、テーブルは連続移動
+    収集済み領域（青橙縞）がビームの通過に伴い連続的に伸びる
+    1サイクル 7.5 秒でループ（スキャン6s＝4回転＋終端1.5s静止）
+  -->
+  <defs>
+    <pattern id="duoStripe" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="5" height="10" fill="#2563eb"/>
+      <rect x="5" width="5" height="10" fill="#f59e0b"/>
+    </pattern>
+  </defs>
+
+  <!-- ================= 左：断面ビュー（連続回転＋高速kV切替） ================= -->
+  <g>
+    <!-- kV 表示（高速で交互点滅、スキャン中のみ） -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+      <text x="215" y="42" text-anchor="middle" font-size="26" font-weight="bold" fill="#2563eb">140 kV
+        <animate attributeName="opacity" dur="0.3s" repeatCount="indefinite" calcMode="discrete" values="1;0"/>
+      </text>
+      <text x="215" y="42" text-anchor="middle" font-size="26" font-weight="bold" fill="#f59e0b">80 kV
+        <animate attributeName="opacity" dur="0.3s" repeatCount="indefinite" calcMode="discrete" values="0;1"/>
+      </text>
+    </g>
+
+    <!-- ガントリ（リング） -->
+    <circle cx="215" cy="225" r="163" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/>
+    <circle cx="215" cy="225" r="137" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+
+    <!-- 回転する管球・ビーム・検出器（スキャン中は回転しっぱなし） -->
+    <g transform="translate(215,225)">
+      <g>
+        <animateTransform attributeName="transform" type="rotate" dur="7.5s" repeatCount="indefinite"
+          values="0;1440;1440" keyTimes="0;0.8;1"/>
+        <!-- ファンビーム（スキャン中のみ表示、色は高速切替） -->
+        <g opacity="0">
+          <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+            values="1;0" keyTimes="0;0.8"/>
+          <path d="M 0 -126 L -64 110.8 A 128 128 0 0 0 64 110.8 Z" fill="#2563eb" fill-opacity="0.32">
+            <animate attributeName="fill" dur="0.3s" repeatCount="indefinite" calcMode="discrete"
+              values="#2563eb;#f59e0b"/>
+          </path>
+        </g>
+        <!-- 検出器 -->
+        <path d="M -67 116 A 134 134 0 0 0 67 116" fill="none" stroke="#334155" stroke-width="9" stroke-linecap="round"/>
+        <!-- X線管（色が高速切替、非照射中はグレーの覆い） -->
+        <rect x="-21" y="-153" width="42" height="27" rx="6" fill="#2563eb" stroke="#475569" stroke-width="2">
+          <animate attributeName="fill" dur="0.3s" repeatCount="indefinite" calcMode="discrete"
+            values="#2563eb;#f59e0b"/>
+        </rect>
+        <rect x="-21" y="-153" width="42" height="27" rx="6" fill="#9ca3af" stroke="#475569" stroke-width="2" opacity="0">
+          <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+            values="0;1" keyTimes="0;0.8"/>
+        </rect>
+      </g>
+      <!-- 患者（体幹断面） -->
+      <ellipse cx="0" cy="0" rx="58" ry="46" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+    </g>
+  </g>
+
+  <!-- ================= 右：側面ビュー（テーブル連続移動） ================= -->
+  <g>
+    <!-- ガントリ位置の破線 -->
+    <line x1="640" y1="66" x2="640" y2="364" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5 5"/>
+
+    <!-- テーブル＋患者（連続スライド） -->
+    <g>
+      <animateTransform attributeName="transform" type="translate" dur="7.5s" repeatCount="indefinite"
+        values="0,0; -100,0; -100,0" keyTimes="0;0.8;1"/>
+      <!-- テーブル -->
+      <rect x="545" y="245" width="330" height="17" rx="7" fill="#9ca3af" stroke="#6b7280" stroke-width="1.5"/>
+      <!-- 患者（側面） -->
+      <rect x="560" y="180" width="240" height="62" rx="30" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+      <circle cx="820" cy="211" r="25" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+      <!-- 収集済み領域（ビーム通過に伴い連続的に伸びる青橙縞） -->
+      <rect x="615" y="181" width="0" height="60" fill="url(#duoStripe)" stroke="#475569" stroke-width="1.5" opacity="0.85">
+        <animate attributeName="width" dur="7.5s" repeatCount="indefinite"
+          values="0;100;150;150" keyTimes="0;0.8;0.84;1"/>
+      </rect>
+    </g>
+
+    <!-- 照射ビーム帯（ボア内、色は高速切替、スキャン中のみ） -->
+    <rect x="615" y="160" width="50" height="105" fill="#2563eb" fill-opacity="0.35" opacity="0">
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+      <animate attributeName="fill" dur="0.3s" repeatCount="indefinite" calcMode="discrete"
+        values="#2563eb;#f59e0b"/>
+    </rect>
+
+    <!-- ガントリ（側面：上下の筐体を最前面に） -->
+    <rect x="605" y="70" width="70" height="90" rx="8" fill="#d1d5db" stroke="#6b7280" stroke-width="2"/>
+    <rect x="605" y="265" width="70" height="90" rx="8" fill="#d1d5db" stroke="#6b7280" stroke-width="2"/>
+
+    <!-- テーブル連続移動の矢印＋ラベル（スキャン中ずっと表示） -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+      <path d="M 495 300 l 26 -13 v 7 h 52 v 12 h -52 v 7 z" fill="#374151"/>
+      <text x="535" y="333" text-anchor="middle" font-size="18" font-weight="bold" fill="#374151">連続移動</text>
+    </g>
+  </g>
+</svg>
