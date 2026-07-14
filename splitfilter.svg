@@ -1,0 +1,162 @@
+<svg viewBox="0 0 1280 430" xmlns="http://www.w3.org/2000/svg" font-family="'Hiragino Sans','Helvetica Neue',Arial,sans-serif">
+  <!--
+    Split filter（ツインビーム）方式のデータ収集アニメーション（3パネル版）
+    左=断面ビュー: 1つの管球(120kV, 黄ビーム)が回転
+    中央=管球部の拡大図: 分割フィルタ Sn(高エネルギー=青)/Au(低エネルギー=橙) が z方向にビームを2分割
+    右=ヘリカル側面図: 2色のビーム帯を各断面が通過して両エネルギー収集
+    1サイクル 7.5 秒でループ（スキャン6s＝4回転＋終端1.5s静止）
+  -->
+  <defs>
+    <pattern id="duoStripe" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="5" height="10" fill="#2563eb"/>
+      <rect x="5" width="5" height="10" fill="#f59e0b"/>
+    </pattern>
+  </defs>
+
+  <!-- 拡大対応の破線（右パネルのビーム部→中央パネル全体） -->
+  <g stroke="#b6bcc6" stroke-width="1.3" stroke-dasharray="5 5">
+    <rect x="909" y="152" width="62" height="121" fill="none"/>
+    <line x1="909" y1="152" x2="728" y2="55"/>
+    <line x1="909" y1="273" x2="728" y2="400"/>
+  </g>
+
+  <!-- ================= 左：断面ビュー（管球が回転） ================= -->
+  <g>
+    <!-- kV 表示（単一・切替なし、スキャン中のみ） -->
+    <text x="185" y="42" text-anchor="middle" font-size="26" font-weight="bold" fill="#475569" opacity="0">120 kV
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+    </text>
+
+    <!-- ガントリ（リング） -->
+    <circle cx="185" cy="225" r="163" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/>
+    <circle cx="185" cy="225" r="137" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+
+    <!-- 回転する管球・ビーム・検出器 -->
+    <g transform="translate(185,225)">
+      <g>
+        <animateTransform attributeName="transform" type="rotate" dur="7.5s" repeatCount="indefinite"
+          values="0;1440;1440" keyTimes="0;0.8;1"/>
+        <!-- ファンビーム（120kV=黄、スキャン中のみ） -->
+        <path d="M 0 -126 L -64 110.8 A 128 128 0 0 0 64 110.8 Z" fill="#eab308" fill-opacity="0.35" opacity="0">
+          <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+            values="1;0" keyTimes="0;0.8"/>
+        </path>
+        <!-- 検出器 -->
+        <path d="M -67 116 A 134 134 0 0 0 67 116" fill="none" stroke="#334155" stroke-width="9" stroke-linecap="round"/>
+        <!-- X線管（非照射中はグレーの覆い） -->
+        <rect x="-21" y="-153" width="42" height="27" rx="6" fill="#eab308" stroke="#475569" stroke-width="2"/>
+        <rect x="-21" y="-153" width="42" height="27" rx="6" fill="#9ca3af" stroke="#475569" stroke-width="2" opacity="0">
+          <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+            values="0;1" keyTimes="0;0.8"/>
+        </rect>
+      </g>
+      <!-- 患者（体幹断面） -->
+      <ellipse cx="0" cy="0" rx="58" ry="46" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+    </g>
+  </g>
+
+  <!-- ================= 中央：管球部の拡大図（z方向にビーム分割） ================= -->
+  <g>
+    <!-- X線管 -->
+    <rect x="500" y="58" width="70" height="46" rx="9" fill="#94a3b8" stroke="#475569" stroke-width="2.5"/>
+
+    <!-- フィルタまでの混合ビーム（黄、スキャン中のみ） -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+      <polygon points="535,106 460,150 610,150" fill="#eab308" fill-opacity="0.3"/>
+      <line x1="535" y1="108" x2="488" y2="148" stroke="#d4a017" stroke-width="2.5" stroke-dasharray="10 8">
+        <animate attributeName="stroke-dashoffset" values="18;0" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+      <line x1="535" y1="108" x2="535" y2="148" stroke="#d4a017" stroke-width="2.5" stroke-dasharray="10 8">
+        <animate attributeName="stroke-dashoffset" values="18;0" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+      <line x1="535" y1="108" x2="582" y2="148" stroke="#d4a017" stroke-width="2.5" stroke-dasharray="10 8">
+        <animate attributeName="stroke-dashoffset" values="18;0" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+    </g>
+
+    <!-- 分割フィルタ: Sn(スズ)＝高エネルギー側 / Au(金)＝低エネルギー側 -->
+    <rect x="453" y="150" width="82" height="16" fill="#64748b" stroke="#334155" stroke-width="1.5"/>
+    <rect x="535" y="150" width="82" height="16" fill="#d4a017" stroke="#8a6a08" stroke-width="1.5"/>
+    <text x="494" y="163" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Sn</text>
+    <text x="576" y="163" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Au</text>
+
+    <!-- フィルタ通過後：z方向に2分割されたビーム（スキャン中のみ） -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+      <polygon points="457,168 535,168 535,300 415,300" fill="#2563eb" fill-opacity="0.28"/>
+      <polygon points="535,168 613,168 655,300 535,300" fill="#f59e0b" fill-opacity="0.28"/>
+      <line x1="496" y1="168" x2="455" y2="298" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="10 8">
+        <animate attributeName="stroke-dashoffset" values="18;0" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+      <line x1="516" y1="168" x2="497" y2="298" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="10 8">
+        <animate attributeName="stroke-dashoffset" values="18;0" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+      <line x1="554" y1="168" x2="573" y2="298" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="10 8">
+        <animate attributeName="stroke-dashoffset" values="18;0" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+      <line x1="574" y1="168" x2="615" y2="298" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="10 8">
+        <animate attributeName="stroke-dashoffset" values="18;0" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+      <text x="460" y="250" text-anchor="middle" font-size="15" font-weight="bold" fill="#1d4ed8"
+        paint-order="stroke" stroke="#ffffff" stroke-width="4">高エネルギー</text>
+      <text x="612" y="250" text-anchor="middle" font-size="15" font-weight="bold" fill="#d97706"
+        paint-order="stroke" stroke="#ffffff" stroke-width="4">低エネルギー</text>
+    </g>
+
+    <!-- 患者（体軸に沿った断面）とテーブル -->
+    <rect x="382" y="300" width="306" height="58" rx="26" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+    <rect x="370" y="362" width="330" height="14" rx="6" fill="#9ca3af" stroke="#6b7280" stroke-width="1.5"/>
+
+    <!-- 体軸方向の注記 -->
+    <line x1="450" y1="398" x2="620" y2="398" stroke="#6b7280" stroke-width="2"/>
+    <polygon points="438,398 452,391 452,405" fill="#6b7280"/>
+    <polygon points="632,398 618,391 618,405" fill="#6b7280"/>
+    <text x="535" y="421" text-anchor="middle" font-size="14" fill="#6b7280">体軸方向（z）</text>
+  </g>
+
+  <!-- ================= 右：側面ビュー（テーブル連続移動） ================= -->
+  <g>
+    <!-- ガントリ位置の破線 -->
+    <line x1="940" y1="66" x2="940" y2="364" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5 5"/>
+
+    <!-- テーブル＋患者（連続スライド） -->
+    <g>
+      <animateTransform attributeName="transform" type="translate" dur="7.5s" repeatCount="indefinite"
+        values="0,0; -100,0; -100,0" keyTimes="0;0.8;1"/>
+      <!-- テーブル -->
+      <rect x="845" y="245" width="330" height="17" rx="7" fill="#9ca3af" stroke="#6b7280" stroke-width="1.5"/>
+      <!-- 患者（側面） -->
+      <rect x="860" y="180" width="240" height="62" rx="30" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+      <circle cx="1120" cy="211" r="25" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+      <!-- 収集済み領域（両方の半ビームを通過＝青橙縞が連続的に伸びる） -->
+      <rect x="915" y="181" width="0" height="60" fill="url(#duoStripe)" stroke="#475569" stroke-width="1.5" opacity="0.85">
+        <animate attributeName="width" dur="7.5s" repeatCount="indefinite"
+          values="0;100;150;150" keyTimes="0;0.8;0.84;1"/>
+      </rect>
+    </g>
+
+    <!-- 照射ビーム帯（z方向に2分割: 左=高エネルギー(青)/右=低エネルギー(橙)、スキャン中のみ） -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+      <rect x="915" y="160" width="25" height="105" fill="#2563eb" fill-opacity="0.35"/>
+      <rect x="940" y="160" width="25" height="105" fill="#f59e0b" fill-opacity="0.35"/>
+    </g>
+
+    <!-- ガントリ（側面：上下の筐体を最前面に） -->
+    <rect x="905" y="70" width="70" height="90" rx="8" fill="#d1d5db" stroke="#6b7280" stroke-width="2"/>
+    <rect x="905" y="265" width="70" height="90" rx="8" fill="#d1d5db" stroke="#6b7280" stroke-width="2"/>
+
+    <!-- テーブル連続移動の矢印＋ラベル（スキャン中ずっと表示） -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="7.5s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0" keyTimes="0;0.8"/>
+      <path d="M 795 300 l 26 -13 v 7 h 52 v 12 h -52 v 7 z" fill="#374151"/>
+      <text x="835" y="333" text-anchor="middle" font-size="18" font-weight="bold" fill="#374151">連続移動</text>
+    </g>
+  </g>
+</svg>
