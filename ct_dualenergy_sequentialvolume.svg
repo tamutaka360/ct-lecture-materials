@@ -1,0 +1,127 @@
+<svg viewBox="0 0 940 430" xmlns="http://www.w3.org/2000/svg" font-family="'Hiragino Sans','Helvetica Neue',Arial,sans-serif">
+  <!--
+    Sequential volume (Dual spin) 方式のデータ収集アニメーション
+    1回転目: 140 kV(青) → 2回転目: 80 kV(橙) → テーブル移動 … を3ポジション繰り返し
+    1サイクル 12 秒でループ
+  -->
+  <defs>
+    <pattern id="stripeB" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect width="5" height="10" fill="#2563eb"/>
+    </pattern>
+    <pattern id="stripeO" width="10" height="10" patternUnits="userSpaceOnUse">
+      <rect x="5" width="5" height="10" fill="#f59e0b"/>
+    </pattern>
+  </defs>
+
+  <!-- ================= 左：断面ビュー（回転とエネルギー切替） ================= -->
+  <g>
+    <!-- kV 表示 -->
+    <text x="215" y="42" text-anchor="middle" font-size="26" font-weight="bold" fill="#2563eb" opacity="0">140 kV
+      <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0;1;0;1;0" keyTimes="0;0.125;0.3333;0.4583;0.6667;0.7917"/>
+    </text>
+    <text x="215" y="42" text-anchor="middle" font-size="26" font-weight="bold" fill="#f59e0b" opacity="0">80 kV
+      <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+        values="0;1;0;1;0;1;0" keyTimes="0;0.125;0.25;0.4583;0.5833;0.7917;0.9167"/>
+    </text>
+
+    <!-- ガントリ（リング） -->
+    <circle cx="215" cy="225" r="163" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/>
+    <circle cx="215" cy="225" r="137" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+
+    <!-- 回転する管球・ビーム・検出器 -->
+    <g transform="translate(215,225)">
+      <g>
+        <animateTransform attributeName="transform" type="rotate" dur="12s" repeatCount="indefinite"
+          values="0;720;720;1440;1440;2160;2160"
+          keyTimes="0;0.25;0.3333;0.5833;0.6667;0.9167;1"/>
+        <!-- ファンビーム（青 / 橙 を切替表示） -->
+        <path d="M 0 -126 L -64 110.8 A 128 128 0 0 0 64 110.8 Z" fill="#2563eb" fill-opacity="0.32" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="1;0;1;0;1;0" keyTimes="0;0.125;0.3333;0.4583;0.6667;0.7917"/>
+        </path>
+        <path d="M 0 -126 L -64 110.8 A 128 128 0 0 0 64 110.8 Z" fill="#f59e0b" fill-opacity="0.32" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="0;1;0;1;0;1;0" keyTimes="0;0.125;0.25;0.4583;0.5833;0.7917;0.9167"/>
+        </path>
+        <!-- 検出器 -->
+        <path d="M -67 116 A 134 134 0 0 0 67 116" fill="none" stroke="#334155" stroke-width="9" stroke-linecap="round"/>
+        <!-- X線管 -->
+        <rect x="-21" y="-153" width="42" height="27" rx="6" fill="#9ca3af" stroke="#475569" stroke-width="2">
+          <animate attributeName="fill" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="#2563eb;#f59e0b;#9ca3af;#2563eb;#f59e0b;#9ca3af;#2563eb;#f59e0b;#9ca3af"
+            keyTimes="0;0.125;0.25;0.3333;0.4583;0.5833;0.6667;0.7917;0.9167"/>
+        </rect>
+      </g>
+      <!-- 患者（体幹断面） -->
+      <ellipse cx="0" cy="0" rx="58" ry="46" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+    </g>
+  </g>
+
+  <!-- ================= 右：側面ビュー（テーブル移動） ================= -->
+  <g>
+    <!-- ガントリ位置の破線 -->
+    <line x1="640" y1="66" x2="640" y2="364" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5 5"/>
+
+    <!-- テーブル＋患者（ステップ移動） -->
+    <g>
+      <animateTransform attributeName="transform" type="translate" dur="12s" repeatCount="indefinite"
+        values="0,0; 0,0; -50,0; -50,0; -100,0; -100,0"
+        keyTimes="0;0.25;0.3333;0.5833;0.6667;1"/>
+      <!-- テーブル -->
+      <rect x="545" y="245" width="330" height="17" rx="7" fill="#9ca3af" stroke="#6b7280" stroke-width="1.5"/>
+      <!-- 患者（側面） -->
+      <rect x="560" y="180" width="240" height="62" rx="30" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+      <circle cx="820" cy="211" r="25" fill="#f5d5b8" stroke="#d4a373" stroke-width="2.5"/>
+      <!-- 収集済みスライス（青縞=140kV済 → 橙縞が埋まって両エネルギー済） -->
+      <g>
+        <rect x="615" y="181" width="50" height="60" fill="url(#stripeB)" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="0;0.85" keyTimes="0;0.125"/>
+        </rect>
+        <rect x="615" y="181" width="50" height="60" fill="url(#stripeO)" stroke="#475569" stroke-width="1.5" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="0;0.85" keyTimes="0;0.25"/>
+        </rect>
+        <rect x="665" y="181" width="50" height="60" fill="url(#stripeB)" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="0;0.85" keyTimes="0;0.4583"/>
+        </rect>
+        <rect x="665" y="181" width="50" height="60" fill="url(#stripeO)" stroke="#475569" stroke-width="1.5" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="0;0.85" keyTimes="0;0.5833"/>
+        </rect>
+        <rect x="715" y="181" width="50" height="60" fill="url(#stripeB)" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="0;0.85" keyTimes="0;0.7917"/>
+        </rect>
+        <rect x="715" y="181" width="50" height="60" fill="url(#stripeO)" stroke="#475569" stroke-width="1.5" opacity="0">
+          <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+            values="0;0.85" keyTimes="0;0.9167"/>
+        </rect>
+      </g>
+    </g>
+
+    <!-- 照射ビーム帯（ボア内、青/橙切替） -->
+    <rect x="615" y="160" width="50" height="105" fill="#2563eb" fill-opacity="0.35" opacity="0">
+      <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+        values="1;0;1;0;1;0" keyTimes="0;0.125;0.3333;0.4583;0.6667;0.7917"/>
+    </rect>
+    <rect x="615" y="160" width="50" height="105" fill="#f59e0b" fill-opacity="0.35" opacity="0">
+      <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+        values="0;1;0;1;0;1;0" keyTimes="0;0.125;0.25;0.4583;0.5833;0.7917;0.9167"/>
+    </rect>
+
+    <!-- ガントリ（側面：上下の筐体を最前面に） -->
+    <rect x="605" y="70" width="70" height="90" rx="8" fill="#d1d5db" stroke="#6b7280" stroke-width="2"/>
+    <rect x="605" y="265" width="70" height="90" rx="8" fill="#d1d5db" stroke="#6b7280" stroke-width="2"/>
+
+    <!-- テーブル移動の矢印＋ラベル -->
+    <g opacity="0">
+      <animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete"
+        values="0;1;0;1;0" keyTimes="0;0.25;0.3333;0.5833;0.6667"/>
+      <path d="M 495 300 l 26 -13 v 7 h 52 v 12 h -52 v 7 z" fill="#374151"/>
+      <text x="535" y="333" text-anchor="middle" font-size="18" font-weight="bold" fill="#374151">テーブル移動</text>
+    </g>
+  </g>
+</svg>
