@@ -1,0 +1,221 @@
+<svg width="1200" height="480" viewBox="0 0 1200 480" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .title { font-weight: bold; font-size: 20px; fill: #2c3e50; }
+    
+    /* ガントリ回転 (10秒で1周) */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .gantry {
+      transform-origin: 200px 280px;
+      animation: spin 10s linear infinite;
+    }
+
+    /* X線ビームの欠損 (135度の位置 = 37.5%) */
+    @keyframes beam-error {
+      0%, 36.9% { fill: rgba(0, 150, 255, 0.15); }
+      37.0%, 38.5% { fill: rgba(255, 50, 50, 0.7); }
+      38.6%, 100% { fill: rgba(0, 150, 255, 0.15); }
+    }
+    .beam {
+      animation: beam-error 10s linear infinite;
+    }
+
+    @keyframes text-flash {
+      0%, 36.9% { opacity: 0; }
+      37.0%, 38.5% { opacity: 1; }
+      38.6%, 100% { opacity: 0; }
+    }
+
+    /* サイノグラムの進行マスク */
+    @keyframes reveal {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(300px); }
+    }
+    .sino-mask {
+      animation: reveal 10s linear infinite;
+    }
+
+    /* エラーアーチファクトの出現 */
+    .serr { animation: serr-show 10s linear infinite; } 
+    @keyframes serr-show { 0%, 37.4% {opacity:0} 37.5%, 100% {opacity:1} }
+
+    /* 画像再構成の塗りスタンプ */
+    .s0   { animation: s0 10s linear infinite; }   @keyframes s0   { 0% {opacity:0} 0.1%, 100% {opacity:0.15} }
+    .s30  { animation: s30 10s linear infinite; }  @keyframes s30  { 0%, 8.2% {opacity:0}  8.3%, 100% {opacity:0.15} }
+    .s60  { animation: s60 10s linear infinite; }  @keyframes s60  { 0%, 16.5% {opacity:0} 16.6%, 100% {opacity:0.15} }
+    .s90  { animation: s90 10s linear infinite; }  @keyframes s90  { 0%, 24.9% {opacity:0} 25.0%, 100% {opacity:0.15} }
+    .s120 { animation: s120 10s linear infinite; } @keyframes s120 { 0%, 33.2% {opacity:0} 33.3%, 100% {opacity:0.15} }
+    .s150 { animation: s150 10s linear infinite; } @keyframes s150 { 0%, 41.5% {opacity:0} 41.6%, 100% {opacity:0.15} }
+    .s180 { animation: s180 10s linear infinite; } @keyframes s180 { 0%, 49.9% {opacity:0} 50.0%, 100% {opacity:0.15} }
+    .s210 { animation: s210 10s linear infinite; } @keyframes s210 { 0%, 58.2% {opacity:0} 58.3%, 100% {opacity:0.15} }
+    .s240 { animation: s240 10s linear infinite; } @keyframes s240 { 0%, 66.5% {opacity:0} 66.6%, 100% {opacity:0.15} }
+    .s270 { animation: s270 10s linear infinite; } @keyframes s270 { 0%, 74.9% {opacity:0} 75.0%, 100% {opacity:0.15} }
+    .s300 { animation: s300 10s linear infinite; } @keyframes s300 { 0%, 83.2% {opacity:0} 83.3%, 100% {opacity:0.15} }
+    .s330 { animation: s330 10s linear infinite; } @keyframes s330 { 0%, 91.5% {opacity:0} 91.6%, 100% {opacity:0.15} }
+
+    /* データ蓄積に比例して被写体が明瞭になるアニメーション */
+    .sharp-phantom { animation: fade-in 10s linear infinite; }
+    @keyframes fade-in { 
+      0% {opacity: 0} 
+      50% {opacity: 0.3} 
+      100% {opacity: 1} 
+    }
+
+    .recon-scan-line {
+      transform-origin: 1000px 280px;
+      animation: spin 10s linear infinite;
+    }
+  </style>
+
+  <defs>
+    <!-- ファントム -->
+    <g id="phantom">
+      <ellipse cx="0" cy="0" rx="90" ry="70" fill="#777777" />
+      <circle cx="-40" cy="0" r="20" fill="#ffffff" />
+      <circle cx="40" cy="0" r="20" fill="#ffffff" />
+    </g>
+
+    <!-- 逆投影スミア -->
+    <filter id="blur-y" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="0, 100"/>
+    </filter>
+
+    <!-- 検出器側（下方向）へ向かって薄くなるグラデーションマスク -->
+    <linearGradient id="fade-to-detector" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1.0" />
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.25" />
+    </linearGradient>
+
+    <mask id="artifact-gradient-mask">
+      <rect x="-200" y="-180" width="400" height="400" fill="url(#fade-to-detector)" />
+    </mask>
+
+    <clipPath id="sino-clip">
+      <rect x="450" y="130" width="300" height="300" />
+    </clipPath>
+    <clipPath id="recon-clip">
+      <circle cx="0" cy="0" r="140" />
+    </clipPath>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#f8f9fa"/>
+  <line x1="400" y1="40" x2="400" y2="440" stroke="#ccc" stroke-dasharray="6"/>
+  <line x1="800" y1="40" x2="800" y2="440" stroke="#ccc" stroke-dasharray="6"/>
+
+  <!-- ================= パネル1: ファンビームデータ収集 ================= -->
+  <text x="200" y="50" text-anchor="middle" class="title">1. データ収集</text>
+
+  <use href="#phantom" x="200" y="280"/>
+  <circle cx="200" cy="280" r="140" fill="none" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="8 4"/>
+
+  <g class="gantry">
+    <polygon points="200,100 60,430 340,430" class="beam" />
+    <rect x="180" y="70" width="40" height="30" rx="4" fill="#34495e"/>
+    <polygon points="185,100 215,100 200,115" fill="#34495e"/>
+    <path d="M 60 430 A 330 330 0 0 0 340 430" fill="none" stroke="#7f8c8d" stroke-width="16"/>
+  </g>
+
+  <g style="animation: text-flash 10s linear infinite;">
+    <rect x="110" y="90" width="180" height="36" fill="#e74c3c" rx="4"/>
+    <text x="200" y="115" text-anchor="middle" fill="#fff" font-weight="bold" font-size="16">全チャネル信号欠損!</text>
+  </g>
+
+  <!-- ================= パネル2: サイノグラム ================= -->
+  <text x="600" y="50" text-anchor="middle" class="title">2. サイノグラム</text>
+
+  <rect x="448" y="128" width="304" height="304" fill="none" stroke="#34495e" stroke-width="4"/>
+  <text x="440" y="140" text-anchor="end" font-size="12">0°</text>
+  <text x="440" y="285" text-anchor="end" font-size="12">180°</text>
+  <text x="440" y="430" text-anchor="end" font-size="12">360°</text>
+
+  <g clip-path="url(#sino-clip)">
+    <rect x="450" y="130" width="300" height="300" fill="#000"/>
+    
+    <!-- 楕円の軌跡 -->
+    <path d="M 690,130 Q 670,167.5 670,205 Q 670,242.5 690,280 Q 670,317.5 670,355 Q 670,392.5 690,430 L 510,430 Q 530,392.5 530,355 Q 530,317.5 510,280 Q 530,242.5 510,205 Q 530,167.5 510,130 Z" fill="#333"/>
+    
+    <!-- 2つの高吸収体のサインカーブ軌跡 -->
+    <path d="M 640,130 C 640,165 600,185 600,205 C 600,225 560,245 560,280 C 560,315 600,335 600,355 C 600,375 640,395 640,430" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="round"/>
+    <path d="M 560,130 C 560,165 600,185 600,205 C 600,225 640,245 640,280 C 640,315 600,335 600,355 C 600,375 560,395 560,430" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="round"/>
+
+    <!-- エラー帯 (135度の位置：白一色の欠損ライン) -->
+    <g class="serr">
+      <rect x="450" y="241" width="300" height="5" fill="#ffffff"/>
+    </g>
+
+    <rect x="450" y="130" width="300" height="320" fill="#f8f9fa" class="sino-mask"/>
+    <line x1="450" y1="130" x2="750" y2="130" stroke="#2ecc71" stroke-width="3" class="sino-mask"/>
+  </g>
+
+  <!-- ================= パネル3: 画像再構成 ================= -->
+  <text x="1000" y="50" text-anchor="middle" class="title">3. 画像再構成</text>
+
+  <circle cx="1000" cy="280" r="140" fill="#000" stroke="#7f8c8d" stroke-width="2"/>
+
+  <g transform="translate(1000, 280)" clip-path="url(#recon-clip)">
+    <!-- ビューごとの塗り -->
+    <g class="s0"   transform="rotate(0)">  <g filter="url(#blur-y)"><use href="#phantom" transform="rotate(0)"/></g></g>
+    <g class="s30"  transform="rotate(30)"> <g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-30)"/></g></g>
+    <g class="s60"  transform="rotate(60)"> <g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-60)"/></g></g>
+    <g class="s90"  transform="rotate(90)"> <g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-90)"/></g></g>
+    <g class="s120" transform="rotate(120)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-120)"/></g></g>
+    
+    <g class="s150" transform="rotate(150)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-150)"/></g></g>
+    <g class="s180" transform="rotate(180)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-180)"/></g></g>
+    <g class="s210" transform="rotate(210)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-210)"/></g></g>
+    <g class="s240" transform="rotate(240)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-240)"/></g></g>
+    <g class="s270" transform="rotate(270)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-270)"/></g></g>
+    <g class="s300" transform="rotate(300)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-300)"/></g></g>
+    <g class="s330" transform="rotate(330)"><g filter="url(#blur-y)"><use href="#phantom" transform="rotate(-330)"/></g></g>
+
+    <!-- 鮮明な被写体のフェードイン -->
+    <use href="#phantom" class="sharp-phantom" />
+
+    <!-- 135度のエラー（微細なファン状の縞々線 ＋ 検出器方向への減衰グラデーション） -->
+    <g class="serr" transform="rotate(135)" mask="url(#artifact-gradient-mask)">
+      <g filter="blur(0.8px)">
+        <!-- 焦点(0,-180)から放射状に広がる細かな白黒の縞々（全28分割） -->
+        <polygon points="0,-180 -140,200 -130,200" fill="rgba(255, 255, 255, 0.40)"/>
+        <polygon points="0,-180 -130,200 -120,200" fill="rgba(0, 0, 0, 0.45)"/>
+        <polygon points="0,-180 -120,200 -110,200" fill="rgba(255, 255, 255, 0.45)"/>
+        <polygon points="0,-180 -110,200 -100,200" fill="rgba(0, 0, 0, 0.45)"/>
+        <polygon points="0,-180 -100,200  -90,200" fill="rgba(255, 255, 255, 0.50)"/>
+        <polygon points="0,-180  -90,200  -80,200" fill="rgba(0, 0, 0, 0.50)"/>
+        <polygon points="0,-180  -80,200  -70,200" fill="rgba(255, 255, 255, 0.55)"/>
+        <polygon points="0,-180  -70,200  -60,200" fill="rgba(0, 0, 0, 0.50)"/>
+        <polygon points="0,-180  -60,200  -50,200" fill="rgba(255, 255, 255, 0.60)"/>
+        <polygon points="0,-180  -50,200  -40,200" fill="rgba(0, 0, 0, 0.55)"/>
+        <polygon points="0,-180  -40,200  -30,200" fill="rgba(255, 255, 255, 0.65)"/>
+        <polygon points="0,-180  -30,200  -20,200" fill="rgba(0, 0, 0, 0.55)"/>
+        <polygon points="0,-180  -20,200  -10,200" fill="rgba(255, 255, 255, 0.70)"/>
+        <polygon points="0,-180  -10,200    0,200" fill="rgba(0, 0, 0, 0.60)"/>
+        <polygon points="0,-180    0,200   10,200" fill="rgba(255, 255, 255, 0.70)"/>
+        <polygon points="0,-180   10,200   20,200" fill="rgba(0, 0, 0, 0.60)"/>
+        <polygon points="0,-180   20,200   30,200" fill="rgba(255, 255, 255, 0.65)"/>
+        <polygon points="0,-180   30,200   40,200" fill="rgba(0, 0, 0, 0.55)"/>
+        <polygon points="0,-180   40,200   50,200" fill="rgba(255, 255, 255, 0.60)"/>
+        <polygon points="0,-180   50,200   60,200" fill="rgba(0, 0, 0, 0.50)"/>
+        <polygon points="0,-180   60,200   70,200" fill="rgba(255, 255, 255, 0.55)"/>
+        <polygon points="0,-180   70,200   80,200" fill="rgba(0, 0, 0, 0.50)"/>
+        <polygon points="0,-180   80,200   90,200" fill="rgba(255, 255, 255, 0.50)"/>
+        <polygon points="0,-180   90,200  100,200" fill="rgba(0, 0, 0, 0.45)"/>
+        <polygon points="0,-180  100,200  110,200" fill="rgba(255, 255, 255, 0.45)"/>
+        <polygon points="0,-180  110,200  120,200" fill="rgba(0, 0, 0, 0.45)"/>
+        <polygon points="0,-180  120,200  130,200" fill="rgba(255, 255, 255, 0.40)"/>
+        <polygon points="0,-180  130,200  140,200" fill="rgba(0, 0, 0, 0.40)"/>
+      </g>
+    </g>
+  </g>
+
+  <g class="recon-scan-line">
+    <polygon points="1000,100 860,480 1140,480" fill="rgba(46, 204, 113, 0.05)"/>
+    <line x1="1000" y1="100" x2="1000" y2="480" stroke="#2ecc71" stroke-width="2" opacity="0.8"/>
+  </g>
+
+  <text x="1150" y="450" text-anchor="end" font-weight="bold" fill="#e74c3c" font-size="16" class="serr">シャワー状アーチファクト</text>
+
+</svg>
