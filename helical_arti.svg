@@ -1,0 +1,192 @@
+<svg width="1200" height="480" viewBox="0 0 1200 480" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .title { font-weight: bold; font-size: 18px; fill: #2c3e50; }
+    .label { font-size: 12px; fill: #555; }
+    .math { font-style: italic; font-family: serif; }
+    
+    .fade-flash { animation: flash 10s linear infinite; }
+    @keyframes flash {
+      0%, 48% { opacity: 0; }
+      50%, 55% { opacity: 1; }
+      56%, 100% { opacity: 0; }
+    }
+  </style>
+
+  <defs>
+    <!-- サイノグラムを左から右へ描画する進行マスク -->
+    <clipPath id="sino-sweep-clip">
+      <rect x="850" y="80" width="0" height="320">
+        <animate attributeName="width" values="0; 75; 150; 150; 225; 300" keyTimes="0; 0.25; 0.499; 0.501; 0.75; 1" dur="10s" repeatCount="indefinite" />
+      </rect>
+    </clipPath>
+
+    <!-- 補間サイノグラムの濃度（CT値）変化を表現するグラデーション -->
+    <linearGradient id="sino-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" />       <!-- 0°: 橙が中心(z=0)なので濃い -->
+      <stop offset="25%" stop-color="#555555" />       <!-- 90°: 両データが中心から外れるので薄い -->
+      <stop offset="49.9%" stop-color="#ffffff" />     <!-- 180°直前: 緑が中心(z=0)なので濃い -->
+      <stop offset="50.1%" stop-color="#ffffff" />     <!-- 180°直後: 緑が中心(z=0)なので濃い -->
+      <stop offset="75%" stop-color="#555555" />       <!-- 270°: 両データが中心から外れるので薄い -->
+      <stop offset="100%" stop-color="#ffffff" />      <!-- 360°: 橙が中心(z=0)なので濃い -->
+    </linearGradient>
+    
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e74c3c" />
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#f8f9fa"/>
+  <line x1="400" y1="30" x2="400" y2="450" stroke="#ccc" stroke-dasharray="6"/>
+  <line x1="820" y1="30" x2="820" y2="450" stroke="#ccc" stroke-dasharray="6"/>
+
+  <!-- ================= パネル1: 実空間 (物理ビュー) ================= -->
+  <text x="200" y="40" text-anchor="middle" class="title">1. 装置のうごき (物理空間)</text>
+
+  <rect x="130" y="100" width="140" height="300" fill="#e8eff5" stroke="#bdc3c7" stroke-width="2" rx="10"/>
+  <line x1="50" y1="250" x2="350" y2="250" stroke="#bdc3c7" stroke-dasharray="4"/>
+  
+  <line x1="50" y1="420" x2="350" y2="420" stroke="#555" stroke-width="1.5"/>
+  <polygon points="350,417 355,420 350,423" fill="#555"/>
+  <text x="365" y="424" font-size="14" class="math">z</text>
+  
+  <text x="50" y="440" text-anchor="middle" class="label">-1.0</text>
+  <text x="125" y="440" text-anchor="middle" class="label">-0.5</text>
+  <text x="200" y="440" text-anchor="middle" class="label" fill="#e74c3c" font-weight="bold">z_R=0</text>
+  <text x="275" y="440" text-anchor="middle" class="label">0.5</text>
+  <text x="350" y="440" text-anchor="middle" class="label">1.0</text>
+  
+  <line x1="50" y1="415" x2="50" y2="425" stroke="#555"/>
+  <line x1="125" y1="415" x2="125" y2="425" stroke="#555"/>
+  <line x1="200" y1="415" x2="200" y2="425" stroke="#e74c3c" stroke-width="2"/>
+  <line x1="275" y1="415" x2="275" y2="425" stroke="#555"/>
+  <line x1="350" y1="415" x2="350" y2="425" stroke="#555"/>
+
+  <line x1="200" y1="70" x2="200" y2="420" stroke="#e74c3c" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="200" y="60" text-anchor="middle" fill="#e74c3c" font-weight="bold" font-size="14">再構成面 z_R</text>
+
+  <ellipse cx="200" cy="250" rx="20" ry="35" fill="#7f8c8d" />
+
+  <path d="M 50 250 Q 87.5 100 125 250 T 200 250 T 275 250 T 350 250" fill="none" stroke="#27ae60" stroke-width="2" opacity="0.3"/>
+
+  <!-- 対向データ (橙) -->
+  <g opacity="0.6">
+    <line x2="200" y2="250" stroke="#f39c12" stroke-width="2" stroke-dasharray="4">
+      <animate attributeName="x1" values="200; 218.75; 237.5; 256.25; 275; 125; 143.75; 162.5; 181.25; 200" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+      <animate attributeName="y1" values="250; 193.75; 175; 193.75; 250; 250; 306.25; 325; 306.25; 250" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    </line>
+    <circle r="6" fill="#f39c12">
+      <animate attributeName="cx" values="200; 218.75; 237.5; 256.25; 275; 125; 143.75; 162.5; 181.25; 200" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="250; 193.75; 175; 193.75; 250; 250; 306.25; 325; 306.25; 250" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <!-- 直接データ (緑) -->
+  <g opacity="0.8">
+    <line x2="200" y2="250" stroke="#27ae60" stroke-width="3">
+      <animate attributeName="x1" values="125; 143.75; 162.5; 181.25; 200; 218.75; 237.5; 256.25; 275" keyTimes="0; 0.125; 0.25; 0.375; 0.5; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+      <animate attributeName="y1" values="250; 306.25; 325; 306.25; 250; 193.75; 175; 193.75; 250" keyTimes="0; 0.125; 0.25; 0.375; 0.5; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    </line>
+    <circle r="8" fill="#27ae60">
+      <animate attributeName="cx" values="125; 143.75; 162.5; 181.25; 200; 218.75; 237.5; 256.25; 275" keyTimes="0; 0.125; 0.25; 0.375; 0.5; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="250; 306.25; 325; 306.25; 250; 193.75; 175; 193.75; 250" keyTimes="0; 0.125; 0.25; 0.375; 0.5; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+
+  <!-- ================= パネル2: 展開図 (Z軸方向のズレと補間) ================= -->
+  <text x="610" y="40" text-anchor="middle" class="title">2. 展開図 (Z軸方向のズレと補間)</text>
+
+  <rect x="470" y="80" width="280" height="300" fill="#ffffff" stroke="#333" stroke-width="1.5"/>
+  <line x1="470" y1="230" x2="750" y2="230" stroke="#e74c3c" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="730" y="220" text-anchor="end" fill="#e74c3c" font-weight="bold" font-size="12">再構成面 z_R=0</text>
+
+  <text x="610" y="420" text-anchor="middle" font-size="12">ガントリ回転角 <tspan class="math">β</tspan> (物理) →</text>
+  <text x="440" y="230" text-anchor="middle" font-size="12" transform="rotate(-90, 440, 230)">z (体軸位置)</text>
+  
+  <text x="470" y="400" text-anchor="middle" class="label">-180°</text>
+  <text x="610" y="400" text-anchor="middle" class="label">0°</text>
+  <text x="750" y="400" text-anchor="middle" class="label">180°</text>
+  
+  <text x="455" y="385" text-anchor="end" class="label">-1.0</text>
+  <text x="455" y="309" text-anchor="end" class="label">-0.5</text>
+  <text x="455" y="234" text-anchor="end" class="label">0</text>
+  <text x="455" y="159" text-anchor="end" class="label">0.5</text>
+  <text x="455" y="85" text-anchor="end" class="label">1.0</text>
+
+  <rect x="475" y="90" width="8" height="8" fill="#27ae60"/>
+  <text x="488" y="98" font-size="10" fill="#555">直接データ</text>
+  <circle cx="479" cy="107" r="4" fill="#f39c12"/>
+  <text x="488" y="110" font-size="10" fill="#555">対向データ</text>
+  
+  <rect x="610" y="90" width="10" height="10">
+    <animate attributeName="fill" values="#f39c12; #27ae60; #f39c12" keyTimes="0; 0.5; 1" dur="10s" repeatCount="indefinite" />
+  </rect>
+  <text x="625" y="99" font-size="10" fill="#555">補間データ (距離に応じた混合色)</text>
+
+  <line x1="470" y1="305" x2="750" y2="155" stroke="#27ae60" stroke-width="2" opacity="0.4"/>
+  <line x1="470" y1="230" x2="610" y2="155" stroke="#f39c12" stroke-width="2" stroke-dasharray="4" opacity="0.6"/>
+  <line x1="610" y1="305" x2="750" y2="230" stroke="#f39c12" stroke-width="2" stroke-dasharray="4" opacity="0.6"/>
+
+  <line stroke="#34495e" stroke-width="2" stroke-dasharray="2 2" opacity="0.7">
+    <animate attributeName="x1" values="470; 505; 540; 575; 609.9; 610.1; 645; 680; 715; 750" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    <animate attributeName="x2" values="470; 505; 540; 575; 609.9; 610.1; 645; 680; 715; 750" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    <animate attributeName="y1" values="305; 286.25; 267.5; 248.75; 230; 230; 211.25; 192.5; 173.75; 155" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    <animate attributeName="y2" values="230; 211.25; 192.5; 173.75; 155; 305; 286.25; 267.5; 248.75; 230" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+  </line>
+
+  <circle r="5" fill="#27ae60">
+    <animate attributeName="cx" values="470; 505; 540; 575; 609.9; 610.1; 645; 680; 715; 750" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    <animate attributeName="cy" values="305; 286.25; 267.5; 248.75; 230; 230; 211.25; 192.5; 173.75; 155" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+  </circle>
+
+  <circle r="5" fill="#f39c12">
+    <animate attributeName="cx" values="470; 505; 540; 575; 609.9; 610.1; 645; 680; 715; 750" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    <animate attributeName="cy" values="230; 211.25; 192.5; 173.75; 155; 305; 286.25; 267.5; 248.75; 230" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+  </circle>
+
+  <rect width="10" height="10" transform="translate(-5, -5)">
+    <animate attributeName="fill" values="#f39c12; #27ae60; #f39c12" keyTimes="0; 0.5; 1" dur="10s" repeatCount="indefinite" />
+    <animate attributeName="x" values="470; 505; 540; 575; 610; 610; 645; 680; 715; 750" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+    <animate attributeName="y" values="230; 230; 230; 230; 230; 230; 230; 230; 230; 230" keyTimes="0; 0.125; 0.25; 0.375; 0.499; 0.501; 0.625; 0.75; 0.875; 1" dur="10s" repeatCount="indefinite" />
+  </rect>
+
+
+  <!-- ================= パネル3: 補間サイノグラム ================= -->
+  <text x="1000" y="40" text-anchor="middle" class="title">3. 補間サイノグラム (再構成面 z_R)</text>
+
+  <rect x="850" y="80" width="300" height="300" fill="#111" rx="4"/>
+  
+  <text x="1000" y="420" text-anchor="middle" font-size="12">投影角 (再構成ビュー角) →</text>
+  <text x="830" y="230" text-anchor="middle" font-size="12" transform="rotate(-90, 830, 230)">検出器チャネル</text>
+  
+  <!-- 投影角を 0° から 360° に変更 -->
+  <text x="850" y="400" text-anchor="middle" class="label">0°</text>
+  <text x="1000" y="400" text-anchor="middle" class="label" font-weight="bold" fill="#e74c3c">180°</text>
+  <text x="1150" y="400" text-anchor="middle" class="label">360°</text>
+  
+  <line x1="850" y1="230" x2="1150" y2="230" stroke="#333" stroke-dasharray="4"/>
+  <line x1="1000" y1="80" x2="1000" y2="380" stroke="#333" stroke-dasharray="4"/>
+
+  <rect x="855" y="90" width="20" height="4" fill="#666"/>
+  <text x="880" y="95" font-size="11" fill="#ddd">コンベンショナル (濃度均一・滑らか)</text>
+  
+  <rect x="855" y="110" width="20" height="8" fill="url(#sino-grad)"/>
+  <text x="880" y="115" font-size="11" fill="#ddd">180°LI 補間波形 (濃度変化に鋭いピーク)</text>
+
+  <path d="M 850 230 Q 925 50 1000 230 T 1150 230" fill="none" stroke="#666" stroke-width="2" stroke-dasharray="4" opacity="0.6"/>
+
+  <g clip-path="url(#sino-sweep-clip)">
+    <path d="M 850 230 Q 925 50 1000 230 T 1150 230" fill="none" stroke="url(#sino-grad)" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="1000" cy="230" r="14" fill="none" stroke="#e74c3c" stroke-width="2" class="fade-flash"/>
+  </g>
+
+  <g class="fade-flash">
+    <line x1="1060" y1="180" x2="1010" y2="220" stroke="#e74c3c" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="1025" y="110" width="170" height="60" fill="rgba(255,255,255,0.9)" stroke="#e74c3c" rx="4"/>
+    <text x="1110" y="128" text-anchor="middle" font-size="12" fill="#e74c3c" font-weight="bold">濃度変化の急変(キンク)</text>
+    <text x="1110" y="145" text-anchor="middle" font-size="11" fill="#333">180°で「濃」から「薄」へ鋭く反転</text>
+    <text x="1110" y="160" text-anchor="middle" font-size="11" fill="#333">これがストリーク発生の引き金</text>
+  </g>
+
+</svg>
