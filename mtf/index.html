@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MTF とは — 縞が細かくなると濃淡が消える</title>
+<meta name="description" content="CTの空間分解能を表す MTF を、縞模様のコントラストが失われていく様子からクリック1回ずつ理解する教材アニメーションです。">
+<style>
+  :root{
+    --bg:#F7F8FA; --card:#FFFFFF; --ink:#111827; --sub:#4B5563;
+    --line:#E3E7EC; --accent:#2E7D32; --accentbg:#EAF5EB;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1419; --card:#FFFFFF; --ink:#E5E7EB; --sub:#9CA3AF;
+      --line:#2A3138; --accent:#6FCF7A; --accentbg:#16281A;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Hiragino Maru Gothic ProN','Hiragino Maru Gothic Pro','Hiragino Kaku Gothic ProN',
+                'Noto Sans JP','Yu Gothic',sans-serif;
+    line-height:1.75; -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:1240px; margin:0 auto; padding:28px 20px 64px}
+  header{margin-bottom:22px}
+  h1{font-size:clamp(21px,3.2vw,30px); margin:0 0 6px; letter-spacing:.01em}
+  .lead{margin:0; color:var(--sub); font-size:clamp(14px,1.7vw,17px)}
+  .figcard{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:10px; box-shadow:0 1px 3px rgba(16,24,40,.06); overflow:hidden;
+  }
+  .figcard svg{display:block; width:100%; height:auto; cursor:pointer; touch-action:manipulation}
+  .bar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    margin:14px 0 0;
+  }
+  button{
+    font:inherit; font-size:15px; font-weight:700; color:var(--accent);
+    background:var(--accentbg); border:1.5px solid var(--accent); border-radius:999px;
+    padding:8px 20px; cursor:pointer; line-height:1.4;
+  }
+  button:hover{filter:brightness(.96)}
+  button:active{transform:translateY(1px)}
+  button.ghost{color:var(--sub); background:transparent; border-color:var(--line)}
+  .kbd{color:var(--sub); font-size:13.5px; margin-left:auto}
+  .kbd code{
+    background:var(--card); border:1px solid var(--line); border-radius:5px;
+    padding:1px 6px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px;
+    color:var(--ink);
+  }
+  section{margin-top:34px}
+  h2{font-size:clamp(17px,2.2vw,21px); margin:0 0 10px; padding-bottom:7px;
+     border-bottom:2px solid var(--accent); display:inline-block}
+  p{margin:0 0 12px; font-size:clamp(14px,1.7vw,16.5px)}
+  ol,ul{margin:0 0 12px; padding-left:1.4em; font-size:clamp(14px,1.7vw,16.5px)}
+  li{margin-bottom:5px}
+  .note{
+    background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+    border-radius:8px; padding:13px 16px; color:var(--ink); font-size:15px;
+  }
+  footer{
+    margin-top:44px; padding-top:16px; border-top:1px solid var(--line);
+    color:var(--sub); font-size:13.5px;
+  }
+  footer p{font-size:13.5px; margin:0 0 5px}
+  @media (max-width:560px){ .kbd{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>MTF とは — 縞が細かくなると、濃淡が消えていく</h1>
+    <p class="lead">CT撮影技術学／CTの性能評価（空間分解能）　教材アニメーション</p>
+  </header>
+
+  <div class="figcard" id="figcard">
+<svg id="mtffig" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="縞が細かくなるほどコントラストが失われ、MTFが低下する様子"><style>
+  text{font-family:'Hiragino Maru Gothic ProN','Hiragino Maru Gothic Pro','Noto Sans JP',sans-serif;fill:#111827}
+  .t{font-size:23px;font-weight:bold} .s{font-size:19px} .l{font-size:18px}
+  .ax{stroke:#374151;stroke-width:2.2;fill:none}
+  .hint{font-size:18px;fill:#C62828}
+</style><defs><marker id="ar" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#374151"/></marker></defs><rect width="1240" height="640" fill="#ffffff"/><text class="t" x="70" y="60">① 縞が細かくなるほど、「濃淡の差」が失われていく</text><text class="s" x="70" y="92">左へ行くほど粗い縞　→　右へ行くほど細かい縞（空間周波数が高い）</text><text class="s" id="guide" x="1170" y="60" text-anchor="end" style="fill:#2E7D32">クリックで進む ▶</text><text class="s" id="stepno" x="1170" y="92" text-anchor="end" style="fill:#6B7280">0 / 7</text><rect x="70" y="130" width="1090" height="150" fill="#EFEFEF"/><g id="bar1" style="display:none"><rect x="74.0" y="130" width="171.7" height="150" fill="rgb(128,128,128)"/><rect x="74.00" y="130" width="42.92" height="150" fill="rgb(247,247,247)"/><rect x="116.92" y="130" width="42.92" height="150" fill="rgb(7,7,7)"/><rect x="159.83" y="130" width="42.92" height="150" fill="rgb(247,247,247)"/><rect x="202.75" y="130" width="42.92" height="150" fill="rgb(7,7,7)"/><text class="l" x="161" y="306" text-anchor="middle">2本</text></g><g id="bar2" style="display:none"><rect x="255.7" y="130" width="171.7" height="150" fill="rgb(128,128,128)"/><rect x="255.67" y="130" width="21.46" height="150" fill="rgb(225,225,225)"/><rect x="277.12" y="130" width="21.46" height="150" fill="rgb(29,29,29)"/><rect x="298.58" y="130" width="21.46" height="150" fill="rgb(225,225,225)"/><rect x="320.04" y="130" width="21.46" height="150" fill="rgb(29,29,29)"/><rect x="341.50" y="130" width="21.46" height="150" fill="rgb(225,225,225)"/><rect x="362.96" y="130" width="21.46" height="150" fill="rgb(29,29,29)"/><rect x="384.42" y="130" width="21.46" height="150" fill="rgb(225,225,225)"/><rect x="405.87" y="130" width="21.46" height="150" fill="rgb(29,29,29)"/><text class="l" x="342" y="306" text-anchor="middle">4本</text></g><g id="bar3" style="display:none"><rect x="437.3" y="130" width="171.7" height="150" fill="rgb(128,128,128)"/><rect x="437.33" y="130" width="14.31" height="150" fill="rgb(194,194,194)"/><rect x="451.64" y="130" width="14.31" height="150" fill="rgb(60,60,60)"/><rect x="465.94" y="130" width="14.31" height="150" fill="rgb(194,194,194)"/><rect x="480.25" y="130" width="14.31" height="150" fill="rgb(60,60,60)"/><rect x="494.56" y="130" width="14.31" height="150" fill="rgb(194,194,194)"/><rect x="508.86" y="130" width="14.31" height="150" fill="rgb(60,60,60)"/><rect x="523.17" y="130" width="14.31" height="150" fill="rgb(194,194,194)"/><rect x="537.47" y="130" width="14.31" height="150" fill="rgb(60,60,60)"/><rect x="551.78" y="130" width="14.31" height="150" fill="rgb(194,194,194)"/><rect x="566.08" y="130" width="14.31" height="150" fill="rgb(60,60,60)"/><rect x="580.39" y="130" width="14.31" height="150" fill="rgb(194,194,194)"/><rect x="594.69" y="130" width="14.31" height="150" fill="rgb(60,60,60)"/><text class="l" x="524" y="306" text-anchor="middle">6本</text></g><g id="bar4" style="display:none"><rect x="619.0" y="130" width="171.7" height="150" fill="rgb(128,128,128)"/><rect x="619.00" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="629.73" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><rect x="640.46" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="651.19" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><rect x="661.92" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="672.65" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><rect x="683.38" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="694.10" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><rect x="704.83" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="715.56" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><rect x="726.29" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="737.02" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><rect x="747.75" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="758.48" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><rect x="769.21" y="130" width="10.73" height="150" fill="rgb(165,165,165)"/><rect x="779.94" y="130" width="10.73" height="150" fill="rgb(89,89,89)"/><text class="l" x="706" y="306" text-anchor="middle">8本</text></g><g id="bar5" style="display:none"><rect x="800.7" y="130" width="171.7" height="150" fill="rgb(128,128,128)"/><rect x="800.67" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="809.25" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="817.83" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="826.42" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="835.00" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="843.58" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="852.17" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="860.75" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="869.33" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="877.92" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="886.50" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="895.08" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="903.67" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="912.25" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="920.83" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="929.42" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="938.00" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="946.58" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><rect x="955.17" y="130" width="8.58" height="150" fill="rgb(145,145,145)"/><rect x="963.75" y="130" width="8.58" height="150" fill="rgb(109,109,109)"/><text class="l" x="888" y="306" text-anchor="middle">10本</text></g><g id="bar6" style="display:none"><rect x="982.3" y="130" width="171.7" height="150" fill="rgb(128,128,128)"/><rect x="982.33" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="989.49" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="996.64" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1003.79" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1010.94" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1018.10" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1025.25" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1032.40" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1039.56" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1046.71" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1053.86" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1061.01" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1068.17" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1075.32" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1082.47" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1089.62" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1096.78" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1103.93" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1111.08" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1118.24" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1125.39" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1132.54" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><rect x="1139.69" y="130" width="7.15" height="150" fill="rgb(134,134,134)"/><rect x="1146.85" y="130" width="7.15" height="150" fill="rgb(120,120,120)"/><text class="l" x="1069" y="306" text-anchor="middle">12本</text></g><rect x="70" y="130" width="1090" height="150" fill="none" class="ax"/><rect id="hl" x="70" y="118" width="182" height="174" fill="none" stroke="#C62828" stroke-width="4" style="display:none"/><text class="t" x="70" y="360">② その落ち方をグラフにしたものが MTF</text><line x1="300" y1="530" x2="940" y2="530" class="ax"/><line x1="300" y1="380" x2="300" y2="530" class="ax"/><text class="l" x="620.0" y="564" text-anchor="middle">空間周波数（縞の細かさ）→</text><text class="l" x="284" y="455.0" text-anchor="middle" transform="rotate(-90 284 455.0)">MTF</text><text class="l" x="254" y="388">1.0</text><text class="l" x="270" y="536">0</text><line id="seg2" x1="396.0" y1="395.1" x2="492.0" y2="420.2" stroke="#1565C0" stroke-width="4" stroke-linecap="round" style="display:none"/><line id="seg3" x1="492.0" y1="420.2" x2="588.0" y2="454.9" stroke="#1565C0" stroke-width="4" stroke-linecap="round" style="display:none"/><line id="seg4" x1="588.0" y1="454.9" x2="684.0" y2="487.4" stroke="#1565C0" stroke-width="4" stroke-linecap="round" style="display:none"/><line id="seg5" x1="684.0" y1="487.4" x2="780.0" y2="510.2" stroke="#1565C0" stroke-width="4" stroke-linecap="round" style="display:none"/><line id="seg6" x1="780.0" y1="510.2" x2="876.0" y2="522.6" stroke="#1565C0" stroke-width="4" stroke-linecap="round" style="display:none"/><circle id="pt1" cx="396.0" cy="395.1" r="9" fill="#1565C0" stroke="#fff" stroke-width="2.5" style="display:none"/><circle id="pt2" cx="492.0" cy="420.2" r="9" fill="#1565C0" stroke="#fff" stroke-width="2.5" style="display:none"/><circle id="pt3" cx="588.0" cy="454.9" r="9" fill="#1565C0" stroke="#fff" stroke-width="2.5" style="display:none"/><circle id="pt4" cx="684.0" cy="487.4" r="9" fill="#1565C0" stroke="#fff" stroke-width="2.5" style="display:none"/><circle id="pt5" cx="780.0" cy="510.2" r="9" fill="#1565C0" stroke="#fff" stroke-width="2.5" style="display:none"/><circle id="pt6" cx="876.0" cy="522.6" r="9" fill="#1565C0" stroke="#fff" stroke-width="2.5" style="display:none"/><text class="s" id="rd1" x="1000" y="424" style="display:none;fill:#C62828"></text><text class="s" id="rd2" x="1000" y="454" style="display:none;fill:#C62828"></text><g id="end" style="display:none"><text class="hint" x="960" y="520">ここで縞は消える</text><text class="s" x="620" y="618" text-anchor="middle">MTF＝1 なら濃淡がそのまま伝わる。0 なら、その細かさの構造は画像から消えてしまう。</text></g><rect x="0" y="0" width="1240" height="640" fill="transparent" id="hit"/>
+<script type="text/javascript"><![CDATA[
+var NS = 6, GAP = 181.67, BX = 70;
+var RD = [[2,0.9443],[4,0.7683],[6,0.5257],[8,0.2979],[10,0.1383],[12,0.0521]];
+var step = 0;
+function show(id, on){ var e=document.getElementById(id); if(e) e.style.display = on?'inline':'none'; }
+function render(){
+  for(var i=1;i<=NS;i++){ show('bar'+i, step>=i); show('pt'+i, step>=i); }
+  for(var i=2;i<=NS;i++){ show('seg'+i, step>=i); }
+  var cur = Math.min(step, NS);
+  show('hl', step>=1 && step<=NS);
+  if(step>=1 && step<=NS){
+    document.getElementById('hl').setAttribute('x', (BX+(cur-1)*GAP).toFixed(0));
+    document.getElementById('rd1').textContent = '縞 '+RD[cur-1][0]+'本';
+    document.getElementById('rd2').textContent = 'MTF = '+RD[cur-1][1].toFixed(2);
+    show('rd1',true); show('rd2',true);
+  } else { show('rd1',false); show('rd2',false); }
+  show('end', step>NS);
+  document.getElementById('stepno').textContent = step+' / '+(NS+1);
+  document.getElementById('guide').textContent =
+    (step>NS) ? 'クリックで最初から ↺' : 'クリックで進む ▶';
+}
+function advance(d){ step = (step + d + (NS+2)) % (NS+2); render(); }
+var ROOT = document.getElementById('mtffig');
+(ROOT || document).addEventListener('click', function(){ advance(1); });
+window.mtfStep = function(d){ advance(d); };
+window.mtfReset = function(){ step = 0; render(); };
+document.addEventListener('keydown', function(e){
+  if(e.key===' '||e.key==='ArrowRight'||e.key==='Enter'){ e.preventDefault(); advance(1); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); advance(-1); }
+  else if(e.key==='Home'){ e.preventDefault(); step=0; render(); }
+});
+render();
+]]></script>
+</svg>
+  </div>
+
+  <div class="bar">
+    <button type="button" onclick="mtfStep(1)">進む ▶</button>
+    <button type="button" class="ghost" onclick="mtfStep(-1)">◀ 戻る</button>
+    <button type="button" class="ghost" onclick="mtfReset()">最初から ↺</button>
+    <span class="kbd">図をクリックしても進みます／キーボード <code>Space</code> <code>→</code> 進む・<code>←</code> 戻る・<code>Home</code> 最初から</span>
+  </div>
+
+  <section>
+    <h2>この図の見かた</h2>
+    <ol>
+      <li>上段は<strong>縞模様のファントム</strong>です。左へ行くほど縞が粗く、右へ行くほど細かくなります（＝空間周波数が高い）。</li>
+      <li>クリックするたびに、粗いほうから順に縞が1つずつ現れます。<strong>細かい縞ほど白と黒の差（コントラスト）が薄れ、右端では灰色一色になって消えてしまう</strong>のが見えます。</li>
+      <li>下段のグラフは、そのときの「濃淡がどれだけ残ったか」を縞の細かさごとに並べたものです。<strong>これが MTF（変調伝達関数）</strong>です。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>おさえるポイント</h2>
+    <ul>
+      <li><strong>MTF = 1</strong> … 入力の濃淡がそのまま画像に伝わる</li>
+      <li><strong>MTF = 0.5</strong> … 濃淡が半分に薄まる</li>
+      <li><strong>MTF = 0</strong> … その細かさの構造は画像から消えてしまう</li>
+    </ul>
+    <p class="note">
+      MTF のグラフが<strong>右へ長く伸びている装置・条件ほど、細かいものまで見える</strong>ということになります。
+      実際の評価では <strong>MTF 10 % の点</strong>（実質的な限界）と <strong>MTF 50 % の点</strong>がよく比較に使われ、
+      JIS の不変性試験でもこの2つを基礎値と比べることになっています。
+    </p>
+  </section>
+
+  <footer>
+    <p>診療放射線技師課程「CT撮影技術学」講義用教材</p>
+    <p>グラフの MTF 曲線は説明用のモデル曲線です。実測値ではありません。</p>
+  </footer>
+
+</div>
+</body>
+</html>
